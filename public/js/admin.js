@@ -154,30 +154,87 @@ function addNewItem(e){
 
 /* ---------- Product edit / delete (used by the Inventory table) ---------- */
 function editProduct(id){
-  const p = adminProducts.find(x=>x.id===id);
-  const price = prompt(`New price for ${p.name}`, p.price);
-  if(price === null) return;
-  const qty = prompt(`New quantity for ${p.name}`, p.qty);
-  if(qty === null) return;
-  const unit = prompt(`Unit of measure for ${p.name} (e.g. each, kg, L, pack)`, p.unit || "each");
-  if(unit === null) return;
-  const expiry = prompt(`Expiry date for ${p.name} (YYYY-MM-DD, leave blank for none)`, p.expiryDate || "");
-  if(expiry === null) return;
+  const p = adminProducts.find(x => x.id === id);
+  if (!p) return;
 
-  p.price = parseFloat(price) || p.price;
-  p.qty = parseInt(qty) ?? p.qty;
-  p.unit = unit.trim() || p.unit;
-  p.expiryDate = expiry.trim() || null;
-  renderAll();
-  api(`${ROUTES.products}/${id}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      price: p.price,
-      qty: p.qty,
-      unit: p.unit,
-      expiry_date: p.expiryDate,
-      clear_expiry_date: !p.expiryDate,
-    }),
+  // 1. Remove existing edit modal if present
+  let modal = document.getElementById("admin-edit-product-modal");
+  if (modal) modal.remove();
+
+  // 2. Create Modal HTML
+  modal = document.createElement("div");
+  modal.id = "admin-edit-product-modal";
+  modal.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;";
+  
+  modal.innerHTML = `
+    <div style="background:#fff; padding:24px; border-radius:12px; width:100%; max-width:440px; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+      <h3 style="margin-top:0; margin-bottom:16px; font-size:18px; color:#111827;">Edit ${p.name}</h3>
+      <form id="edit-product-form">
+        <div style="margin-bottom:12px;">
+          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:#374151;">Product Name</label>
+          <input type="text" id="edit-p-name" value="${p.name}" class="form-control" style="width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px;" required>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:#374151;">Price ($)</label>
+            <input type="number" step="0.01" id="edit-p-price" value="${p.price}" class="form-control" style="width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px;" required>
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:#374151;">Quantity</label>
+            <input type="number" id="edit-p-qty" value="${p.qty}" class="form-control" style="width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px;" required>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:#374151;">Unit (e.g., kg, pack)</label>
+            <input type="text" id="edit-p-unit" value="${p.unit || 'each'}" class="form-control" style="width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:#374151;">Expiry Date</label>
+            <input type="date" id="edit-p-exp" value="${p.expiryDate || p.exp_date || ''}" class="form-control" style="width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="btn" onclick="document.getElementById('admin-edit-product-modal').remove()" style="padding:8px 16px; background:#e5e7eb; color:#374151; border:none; border-radius:6px; cursor:pointer;">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="padding:8px 16px; background:#1b4d3e; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Update Product</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // 3. Handle Form Submission & API Call
+  document.getElementById("edit-product-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    
+    p.name = document.getElementById("edit-p-name").value.trim();
+    p.price = parseFloat(document.getElementById("edit-p-price").value) || p.price;
+    p.qty = parseInt(document.getElementById("edit-p-qty").value) ?? p.qty;
+    p.unit = document.getElementById("edit-p-unit").value.trim() || p.unit;
+    p.expiryDate = document.getElementById("edit-p-exp").value || null;
+
+    renderAll();
+    modal.remove();
+
+    api(`${ROUTES.products}/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        name: p.name,
+        price: p.price,
+        qty: p.qty,
+        unit: p.unit,
+        expiry_date: p.expiryDate,
+        clear_expiry_date: !p.expiryDate,
+      }),
+    }).then(({ ok }) => {
+      if(typeof flashAlert === 'function') {
+        flashAlert(ok ? "Product updated successfully!" : "Failed to update product.");
+      }
+    });
   });
 }
 function deleteProduct(id){
@@ -603,11 +660,22 @@ function populatePromotionProductList(){
   if(!wrap) return;
   const checked = new Set(Array.from(wrap.querySelectorAll("input:checked")).map(i => parseInt(i.value)));
   const all = [...adminProducts].sort((a,b)=>a.name.localeCompare(b.name));
+  
   wrap.innerHTML = all.length
-    ? all.map(p => `
-      <label style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13.5px; font-weight:400;">
-        <input type="checkbox" value="${p.id}"${checked.has(p.id)?" checked":""}> ${p.name} <span class="form-note" style="margin:0;">— ${money(p.price)}</span>
-      </label>`).join("")
+    ? all.map(p => {
+        const expDate = p.exp_date || p.expiry_date || p.exp || 'N/A';
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; padding: 6px 4px; border-bottom: 1px solid #f0f0f0; width: 100%; box-sizing: border-box; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <input type="checkbox" value="${p.id}"${checked.has(p.id)?" checked":""} style="margin: 0; cursor: pointer;">
+              <span style="font-weight: 500; font-size: 13.5px; color: #1f2937;">${p.name}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-size: 11.5px; font-weight: 600;">Exp: ${expDate}</span>
+              <span style="color: #059669; font-weight: 700; font-size: 13px;">${money(p.price)}</span>
+            </div>
+          </label>`;
+      }).join("")
     : `<p class="form-note">No products yet.</p>`;
 }
 function submitPromotion(e){
