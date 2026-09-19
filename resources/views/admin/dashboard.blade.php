@@ -406,6 +406,25 @@
       <td><button class="btn btn-small btn-primary" onclick="approveDelivery(${o.id})">Approve</button></td></tr>
     `).join("") || "<tr><td colspan='4'>Nothing waiting — all caught up.</td></tr>";
   };
+
+  // Override promotion product list rendering for single-line alignment
+  if (typeof renderPromoFormProducts === 'function') {
+    const origPromoRender = renderPromoFormProducts;
+    renderPromoFormProducts = function() {
+      const container = document.getElementById("promo-product-list");
+      if (!container) return;
+      
+      container.innerHTML = products.map(p => `
+        <label style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; white-space: nowrap; width: 100%;">
+          <span style="display: inline-flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="product_ids[]" value="${p.id}">
+            <strong style="font-weight: 500;">${p.name}</strong>
+          </span>
+          <span style="color: #666; font-size: 13px;">— ${money(p.salePrice || p.price)}</span>
+        </label>
+      `).join("");
+    };
+  }
 </script>
 </body>
 </html>

@@ -471,6 +471,21 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 }
 .promo-circle span{ font-size:18px; }
 
+#promo-product-list label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 6px 0 !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+  cursor: pointer;
+}
+
+#promo-product-list label input {
+  margin-right: 8px;
+}
+
 /* deal of the day cards */
 .deal-card{ background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow:hidden; }
 .deal-media{ position:relative; aspect-ratio:1/.9; background: var(--brand-soft); }
