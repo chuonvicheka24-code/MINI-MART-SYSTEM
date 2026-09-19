@@ -144,11 +144,47 @@ header.site{ background: var(--surface); border-bottom: 1px solid var(--line); p
 .product-body{ padding: 14px 16px 16px; display:flex; flex-direction:column; gap:6px; }
 .product-cat{ font-size:11.5px; color: var(--brand-text); font-weight:700; }
 .product-name{ font-family: var(--font-display); font-size: 16.5px; font-weight:600; }
-.product-foot{ margin-top:6px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.price-tag{ font-family: var(--font-display); font-weight:700; color: var(--price); font-size:17px; }
-.price-tag small{ color: var(--muted); font-weight:500; font-size:11.5px; }
-.add-btn{ background: var(--brand-dark); color:#fff; border:0; border-radius: var(--radius-sm); padding:8px 16px; font-weight:600; font-size:13px; }
-.add-btn:hover{ background: var(--brand); color: var(--ink); }
+/* 1. Force footer items to align at the top instead of stretching */
+.product-foot {
+    margin-top: auto; /* Keeps footer pinned to card bottom */
+    display: flex;
+    align-items: flex-start; /* Aligns top of price with top of button */
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* 2. Prevent extra unit text from expanding layout height */
+.price-tag {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--price);
+    font-size: 17px;
+    line-height: 1.2;
+}
+
+.price-tag small {
+    display: block;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11.5px;
+    margin-top: 2px;
+}
+.add-btn { 
+    background: var(--brand-dark); 
+    color: #fff; 
+    border: 0; 
+    border-radius: var(--radius-sm); 
+    padding: 8px 12px; 
+    font-weight: 600; 
+    font-size: 13px; 
+    white-space: nowrap !important;
+    flex-shrink: 0;
+}
+.add-btn:hover { 
+    background: var(--brand); 
+    color: var(--ink); 
+}
+
 
 /* ---------- Sidebar + products layout ---------- */
 .products-layout{ display:grid; grid-template-columns: 240px 1fr; gap:26px; align-items:flex-start; }
@@ -402,14 +438,37 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 .promo-card{ border-radius: var(--radius-lg); overflow:hidden; position:relative; min-height:230px; display:flex; align-items:center; }
 .promo-card.dark{ background: linear-gradient(120deg, var(--brand-dark), #1B5E3C); color:#fff; }
 .promo-card.light{ background: var(--brand-soft); color: var(--ink); }
-.promo-inner{ padding: 30px 34px; position:relative; z-index:2; max-width:60%; }
+.promo-inner { 
+    padding: 30px 34px; 
+    position: relative; 
+    z-index: 2; 
+    max-width: 50%; /* Changed from 60% to 50% */
+}
 .promo-kicker{ font-size:12px; font-weight:700; letter-spacing:.05em; color:#8FE0AB; margin-bottom:8px; }
 .promo-card.light .promo-kicker{ color: var(--brand-dark); }
 .promo-card h3{ color:inherit; font-size:26px; margin-bottom:8px; }
 .promo-card p{ color: inherit; opacity:.85; font-size:13.5px; }
 .promo-media{ position:absolute; right:0; top:0; bottom:0; width:46%; }
 .promo-media img{ width:100%; height:100%; object-fit:cover; }
-.promo-circle{ position:absolute; right:38%; top:50%; transform:translateY(-50%); width:74px; height:74px; border-radius:999px; background: var(--warn); color:#3A2600; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:800; font-size:12px; line-height:1.1; z-index:3; }
+.promo-circle { 
+    position: absolute; 
+    right: 42%; /* Changed from 38% to 42% */
+    top: 50%; 
+    transform: translateY(-50%); 
+    width: 74px; 
+    height: 74px; 
+    border-radius: 999px; 
+    background: var(--warn); 
+    color: #3A2600; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 800; 
+    font-size: 12px; 
+    line-height: 1.1; 
+    z-index: 3; 
+}
 .promo-circle span{ font-size:18px; }
 
 /* deal of the day cards */

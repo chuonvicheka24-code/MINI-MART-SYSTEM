@@ -11,13 +11,13 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@minimart.test'],
+            ['email' => 'admin@minimart.com'],
             [
                 'first_name' => 'Store',
                 'last_name' => 'Admin',
                 'phone' => '(123) 456-7890',
                 'address' => 'Veng Sreng Blvd, Phnom Penh',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('1234'),
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]

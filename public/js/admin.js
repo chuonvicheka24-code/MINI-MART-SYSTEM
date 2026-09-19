@@ -19,6 +19,9 @@ let customers = ADMIN.customers.map(c => ({ ...c }));
 let deliveryStaff = ADMIN.staff.map(s => ({ ...s }));
 let messages = ADMIN.messages.map(m => ({ ...m }));
 let settings = { ...ADMIN.settings };
+let purchaseOrders = ADMIN.purchaseOrders.map(po => ({ ...po, items: po.items.map(i => ({ ...i })) }));
+let promotions = ADMIN.promotions.map(p => ({ ...p, productIds: [...p.productIds], productNames: [...p.productNames] }));
+let poLines = [];
 
 function money(n){ return "$" + Number(n).toFixed(2); }
 function getMessages(){ return messages; }
@@ -41,7 +44,8 @@ function showPanel(name){
   const titles = {
     dashboard:"Dashboard", orders:"Orders", staff:"Staff Delivery", customers:"Customers",
     messages:"Customer Messages",
-    inventory:"Stock Management", reports:"Sales reports", settings:"Settings"
+    inventory:"Stock Management", "purchase-orders":"Purchase Orders", promotions:"Promotions",
+    reports:"Sales reports", settings:"Settings"
   };
   document.getElementById("panel-title").textContent = titles[name];
   renderAll();
@@ -59,6 +63,8 @@ function renderAll(){
   renderCustomersTable();
   renderMessages();
   renderInventory();
+  renderPurchaseOrders();
+  renderPromotions();
   renderReports();
   renderDiscountPanel();
 }
@@ -125,11 +131,13 @@ function addNewItem(e){
   const cat = typedCat || document.getElementById("new-item-cat").value;
   const price = parseFloat(document.getElementById("new-item-price").value) || 0;
   const qty = parseInt(document.getElementById("new-item-qty").value) || 0;
+  const unit = document.getElementById("new-item-unit").value || "each";
+  const expiryDate = document.getElementById("new-item-expiry").value || null;
   if(!name || !cat) return;
 
   api(ROUTES.products, {
     method: "POST",
-    body: JSON.stringify({ name, category: cat, price, qty, image: uploadedImageDataUrl }),
+    body: JSON.stringify({ name, category: cat, price, qty, unit, expiry_date: expiryDate, image: uploadedImageDataUrl }),
   }).then(({ ok, data }) => {
     if(!ok) return flashAlert(data.message || "Could not add that item.");
     adminProducts.push(data.product);
@@ -151,10 +159,26 @@ function editProduct(id){
   if(price === null) return;
   const qty = prompt(`New quantity for ${p.name}`, p.qty);
   if(qty === null) return;
+  const unit = prompt(`Unit of measure for ${p.name} (e.g. each, kg, L, pack)`, p.unit || "each");
+  if(unit === null) return;
+  const expiry = prompt(`Expiry date for ${p.name} (YYYY-MM-DD, leave blank for none)`, p.expiryDate || "");
+  if(expiry === null) return;
+
   p.price = parseFloat(price) || p.price;
   p.qty = parseInt(qty) ?? p.qty;
+  p.unit = unit.trim() || p.unit;
+  p.expiryDate = expiry.trim() || null;
   renderAll();
-  api(`${ROUTES.products}/${id}`, { method: "PUT", body: JSON.stringify({ price: p.price, qty: p.qty }) });
+  api(`${ROUTES.products}/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      price: p.price,
+      qty: p.qty,
+      unit: p.unit,
+      expiry_date: p.expiryDate,
+      clear_expiry_date: !p.expiryDate,
+    }),
+  });
 }
 function deleteProduct(id){
   if(!confirm("Remove this product from the catalog?")) return;
@@ -414,16 +438,30 @@ function stockStatus(qty){
   if(qty < settings.lowStockThreshold * 2) return { cls:"low", label:"Low Stock" };
   return { cls:"instock", label:"In Stock" };
 }
+function daysUntil(dateStr){
+  if(!dateStr) return null;
+  return Math.ceil((new Date(dateStr + "T00:00:00") - new Date(new Date().toDateString())) / 86400000);
+}
+function expiryStatus(dateStr){
+  if(!dateStr) return { cls:"", label:"—" };
+  const days = daysUntil(dateStr);
+  if(days < 0) return { cls:"need", label:`Expired ${dateStr}` };
+  if(days <= 30) return { cls:"low", label:`${dateStr} (${days}d)` };
+  return { cls:"instock", label:dateStr };
+}
 function renderInventory(){
   const rows = [...adminProducts].sort((a,b)=>a.qty-b.qty);
   document.getElementById("inventory-body").innerHTML = rows.map((p,i) => {
     const s = stockStatus(p.qty);
+    const ex = expiryStatus(p.expiryDate);
     return `
     <tr>
       <td>#${i+1}</td>
       <td><img class="row-thumb" src="/${p.img}" alt=""> ${p.name}${p.discountPercent ? ` <span class="status low" style="margin-left:4px;">-${p.discountPercent}%</span>` : ""}</td>
       <td>${p.cat}</td>
+      <td>${p.unit || "each"}</td>
       <td>${p.qty}</td>
+      <td>${ex.cls ? `<span class="status ${ex.cls}">${ex.label}</span>` : ex.label}</td>
       <td><span class="status ${s.cls}">${s.label}</span></td>
       <td>
         <button class="icon-action edit" onclick="editProduct(${p.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
@@ -433,21 +471,208 @@ function renderInventory(){
   }).join("");
 }
 function exportInventory(){
-  let csv = "Product,Category,Qty,Status\n";
-  adminProducts.forEach(p => { csv += `${p.name},${p.cat},${p.qty},${stockStatus(p.qty).label}\n`; });
+  let csv = "Product,Category,Unit,Qty,Expiry,Status\n";
+  adminProducts.forEach(p => { csv += `${p.name},${p.cat},${p.unit || "each"},${p.qty},${p.expiryDate || ""},${stockStatus(p.qty).label}\n`; });
   const blob = new Blob([csv], { type:"text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "minimart-stock.csv";
   a.click();
 }
-function createPurchaseOrder(){
-  const low = adminProducts.filter(p => p.qty < settings.lowStockThreshold * 2);
-  if(!low.length) return flashAlert("Nothing needs restocking right now.");
-  low.forEach(p => p.qty += 20);
-  renderAll();
-  flashAlert(`Purchase order created for ${low.length} item(s) — stock topped up.`);
-  api(ROUTES.purchaseOrder, { method: "POST" });
+/* ---------- Purchase Orders panel (manual — nothing here is auto-generated) ---------- */
+function populatePOProductSelect(){
+  const sel = document.getElementById("po-line-product");
+  if(!sel) return;
+  const current = sel.value;
+  const all = [...adminProducts].sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML = all.length
+    ? all.map(p => `<option value="${p.id}"${String(p.id)===current?" selected":""}>${p.name} (${p.unit || "each"}, ${p.qty} in stock)</option>`).join("")
+    : `<option value="">No products yet</option>`;
+}
+function addPurchaseOrderLine(){
+  const sel = document.getElementById("po-line-product");
+  const productId = parseInt(sel.value);
+  const p = adminProducts.find(x=>x.id===productId);
+  if(!p) return flashAlert("Pick a product first.");
+  const qty = parseInt(document.getElementById("po-line-qty").value) || 1;
+  const unitCost = parseFloat(document.getElementById("po-line-cost").value) || 0;
+
+  const existing = poLines.find(l => l.productId === productId);
+  if(existing){ existing.qty += qty; existing.unitCost = unitCost || existing.unitCost; }
+  else poLines.push({ productId, name: p.name, unit: p.unit || "each", qty, unitCost });
+
+  document.getElementById("po-line-qty").value = 1;
+  document.getElementById("po-line-cost").value = "";
+  renderPOLineList();
+}
+function removePurchaseOrderLine(productId){
+  poLines = poLines.filter(l => l.productId !== productId);
+  renderPOLineList();
+}
+function renderPOLineList(){
+  const list = document.getElementById("po-line-list");
+  const empty = document.getElementById("po-line-empty");
+  if(!list) return;
+  empty.style.display = poLines.length ? "none" : "block";
+  list.innerHTML = poLines.map(l => `
+    <li><strong>${l.name}</strong> — ${l.qty} ${l.unit} @ ${money(l.unitCost)}
+      <button type="button" class="icon-action delete" style="margin-left:8px;" onclick="removePurchaseOrderLine(${l.productId})" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+    </li>`).join("");
+}
+function submitPurchaseOrder(e){
+  e.preventDefault();
+  const supplier = document.getElementById("po-supplier").value.trim();
+  const expectedDate = document.getElementById("po-expected").value || null;
+  const notes = document.getElementById("po-notes").value.trim();
+  if(!supplier) return flashAlert("Enter a supplier name.");
+  if(!poLines.length) return flashAlert("Add at least one product line to the order.");
+
+  api(ROUTES.purchaseOrders, {
+    method: "POST",
+    body: JSON.stringify({
+      supplier_name: supplier,
+      expected_date: expectedDate,
+      notes,
+      items: poLines.map(l => ({ product_id: l.productId, qty: l.qty, unit_cost: l.unitCost })),
+    }),
+  }).then(({ ok, data }) => {
+    if(!ok) return flashAlert(data.message || "Could not create that purchase order.");
+    purchaseOrders.unshift(data.purchaseOrder);
+    poLines = [];
+    e.target.reset();
+    renderAll();
+    flashAlert(`Purchase order sent to ${supplier} for ${data.purchaseOrder.items.length} product(s).`);
+  });
+}
+function receivePurchaseOrder(id){
+  const po = purchaseOrders.find(x=>x.id===id);
+  if(!po) return;
+  if(!confirm(`Mark this order from ${po.supplier} as received? Stock will be added to inventory.`)) return;
+
+  api(`${ROUTES.purchaseOrders}/${id}/receive`, { method: "POST" }).then(({ ok, data }) => {
+    if(!ok) return flashAlert(data.message || "Could not receive that order.");
+    po.status = "received";
+    data.products.forEach(updated => {
+      const idx = adminProducts.findIndex(x=>x.id===updated.id);
+      if(idx !== -1) adminProducts[idx] = updated;
+    });
+    renderAll();
+    flashAlert(`Order received — stock updated for ${data.products.length} product(s).`);
+  });
+}
+function cancelPurchaseOrder(id){
+  if(!confirm("Cancel this purchase order?")) return;
+  api(`${ROUTES.purchaseOrders}/${id}`, { method: "DELETE" }).then(({ ok, data }) => {
+    if(!ok) return flashAlert(data.message || "Could not cancel that order.");
+    const po = purchaseOrders.find(x=>x.id===id);
+    if(po) po.status = "cancelled";
+    renderAll();
+  });
+}
+function renderPurchaseOrders(){
+  populatePOProductSelect();
+  renderPOLineList();
+
+  const body = document.getElementById("po-body");
+  if(!body) return;
+  const statusMeta = { pending:{cls:"pending",label:"Pending"}, received:{cls:"instock",label:"Received"}, cancelled:{cls:"need",label:"Cancelled"} };
+  document.getElementById("po-empty").style.display = purchaseOrders.length ? "none" : "block";
+  body.innerHTML = purchaseOrders.map(po => {
+    const meta = statusMeta[po.status] || statusMeta.pending;
+    const itemsSummary = po.items.map(i => `${i.qty}× ${i.name}`).join(", ");
+    return `
+    <tr>
+      <td>#${po.id}</td>
+      <td>${po.supplier}</td>
+      <td>${itemsSummary}</td>
+      <td>${money(po.totalCost)}</td>
+      <td><span class="status ${meta.cls}">${meta.label}</span></td>
+      <td>
+        ${po.status === "pending" ? `
+          <button class="btn btn-small btn-primary" onclick="receivePurchaseOrder(${po.id})">Receive</button>
+          <button class="icon-action delete" onclick="cancelPurchaseOrder(${po.id})" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+        ` : ""}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+/* ---------- Promotions panel ---------- */
+function populatePromotionProductList(){
+  const wrap = document.getElementById("promo-product-list");
+  if(!wrap) return;
+  const checked = new Set(Array.from(wrap.querySelectorAll("input:checked")).map(i => parseInt(i.value)));
+  const all = [...adminProducts].sort((a,b)=>a.name.localeCompare(b.name));
+  wrap.innerHTML = all.length
+    ? all.map(p => `
+      <label style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13.5px; font-weight:400;">
+        <input type="checkbox" value="${p.id}"${checked.has(p.id)?" checked":""}> ${p.name} <span class="form-note" style="margin:0;">— ${money(p.price)}</span>
+      </label>`).join("")
+    : `<p class="form-note">No products yet.</p>`;
+}
+function submitPromotion(e){
+  e.preventDefault();
+  const title = document.getElementById("promo-title").value.trim();
+  const description = document.getElementById("promo-desc").value.trim();
+  const discountPercent = parseFloat(document.getElementById("promo-discount").value) || 0;
+  const startsAt = document.getElementById("promo-starts").value || null;
+  const endsAt = document.getElementById("promo-ends").value || null;
+  const productIds = Array.from(document.querySelectorAll("#promo-product-list input:checked")).map(i => parseInt(i.value));
+  if(!title) return flashAlert("Give the promotion a title.");
+  if(!productIds.length) return flashAlert("Pick at least one product for the promotion.");
+
+  api(ROUTES.promotions, {
+    method: "POST",
+    body: JSON.stringify({ title, description, discount_percent: discountPercent, starts_at: startsAt, ends_at: endsAt, product_ids: productIds }),
+  }).then(({ ok, data }) => {
+    if(!ok) return flashAlert(data.message || "Could not create that promotion.");
+    promotions.unshift(data.promotion);
+    data.products.forEach(updated => {
+      const idx = adminProducts.findIndex(x=>x.id===updated.id);
+      if(idx !== -1) adminProducts[idx] = updated;
+    });
+    e.target.reset();
+    document.getElementById("promo-discount").value = 10;
+    renderAll();
+    flashAlert(`"${title}" launched across ${productIds.length} product(s).`);
+  });
+}
+function endPromotion(id){
+  const promo = promotions.find(x=>x.id===id);
+  if(!promo) return;
+  if(!confirm(`End "${promo.title}" now? The discount will be removed from its products.`)) return;
+
+  api(`${ROUTES.promotions}/${id}`, { method: "DELETE" }).then(({ ok, data }) => {
+    if(!ok) return flashAlert(data.message || "Could not end that promotion.");
+    promo.status = "ended";
+    data.products.forEach(updated => {
+      const idx = adminProducts.findIndex(x=>x.id===updated.id);
+      if(idx !== -1) adminProducts[idx] = updated;
+    });
+    renderAll();
+    flashAlert(`"${promo.title}" ended.`);
+  });
+}
+function renderPromotions(){
+  populatePromotionProductList();
+
+  const body = document.getElementById("promotions-body");
+  if(!body) return;
+  const statusMeta = { active:{cls:"instock",label:"Active"}, scheduled:{cls:"pending",label:"Scheduled"}, ended:{cls:"need",label:"Ended"} };
+  document.getElementById("promotions-empty").style.display = promotions.length ? "none" : "block";
+  body.innerHTML = promotions.map(promo => {
+    const meta = statusMeta[promo.status] || statusMeta.active;
+    const dates = [promo.startsAt, promo.endsAt].filter(Boolean).join(" → ") || "No end date";
+    return `
+    <tr>
+      <td>${promo.title}</td>
+      <td>${promo.productNames.join(", ")}</td>
+      <td>-${promo.discountPercent}%</td>
+      <td>${dates}</td>
+      <td><span class="status ${meta.cls}">${meta.label}</span></td>
+      <td>${promo.status !== "ended" ? `<button class="btn btn-small" onclick="endPromotion(${promo.id})">End</button>` : ""}</td>
+    </tr>`;
+  }).join("");
 }
 
 /* ---------- Reports panel ---------- */

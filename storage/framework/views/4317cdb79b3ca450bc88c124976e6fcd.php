@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Your cart — Mini Mart'); ?>
 
-@section('title', 'Your cart — Mini Mart')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <div class="page-head">
   <div class="wrap">
@@ -30,7 +28,7 @@
       </table>
       <p id="empty-cart" style="display:none; margin-top:8px;">
         Your basket is empty. 
-        <a href="{{ route('products.index') }}" style="text-decoration:underline; color:var(--brand-dark); font-weight:600;">Go find something fresh →</a>
+        <a href="<?php echo e(route('products.index')); ?>" style="text-decoration:underline; color:var(--brand-dark); font-weight:600;">Go find something fresh →</a>
       </p>
     </div>
 
@@ -55,7 +53,7 @@
         <strong id="sum-total" style="color:#1b4d3e;">$0.00</strong>
       </div>
 
-      <a href="{{ route('checkout.index') }}" id="checkout-btn" class="btn-checkout" style="display:block; width:100%; text-align:center; background:#1b4d3e; color:#fff; padding:12px; border-radius:8px; font-weight:700; text-decoration:none;">
+      <a href="<?php echo e(route('checkout.index')); ?>" id="checkout-btn" class="btn-checkout" style="display:block; width:100%; text-align:center; background:#1b4d3e; color:#fff; padding:12px; border-radius:8px; font-weight:700; text-decoration:none;">
         Confirm & Proceed to Delivery
       </a>
       
@@ -67,11 +65,11 @@
   </div>
 </section>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
-  window.MM_PRODUCTS = @json(\App\Models\Product::all()->map->toStorefrontArray());
+  window.MM_PRODUCTS = <?php echo json_encode(\App\Models\Product::all()->map->toStorefrontArray(), 15, 512) ?>;
 
   function renderCart(){
     const lines = cartLines();
@@ -131,4 +129,5 @@
 
   refreshCartCache().then(renderCart);
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/cart/index.blade.php ENDPATH**/ ?>

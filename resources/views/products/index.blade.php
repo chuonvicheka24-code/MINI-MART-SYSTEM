@@ -52,7 +52,6 @@
   const grid = document.getElementById("grid");
   const emptyMsg = document.getElementById("empty-msg");
   const resultLabel = document.getElementById("result-label");
-  const crumbCat = document.getElementById("crumb-cat");
   const searchInput = document.getElementById("search-input");
   searchInput.value = query;
 
@@ -69,28 +68,37 @@
     if(sort === "new") items = [...items].sort((a,b)=> new Date(b.dateAdded) - new Date(a.dateAdded));
 
     const label = activeCat === "All" ? "All Products" : activeCat;
-    crumbCat.textContent = sort === "new" && activeCat === "All" ? "New Arrivals" : label;
+    document.getElementById("crumb-cat").textContent = sort === "new" && activeCat === "All" ? "New Arrivals" : label;
     resultLabel.textContent = query
       ? `${items.length} result${items.length===1?"":"s"} for "${query}"`
       : (sort === "new" && activeCat === "All" ? "New Arrivals" : label);
 
     emptyMsg.style.display = items.length ? "none" : "block";
+    
     grid.innerHTML = items.map(p => `
-      <div class="product-card">
-        <div class="product-media">
-          <img src="/${p.img}" alt="${p.name}">
-          ${p.qty < 10 ? `<span class="stock-flag">Only ${p.qty} left</span>` : ""}
-        </div>
-        <div class="product-body">
-          <span class="product-cat">${p.cat}</span>
-          <span class="product-name">${p.name}</span>
-          <div class="product-foot">
-            <span class="price-tag">${money(p.salePrice)}<br><small>per ${p.unit}</small></span>
-            <button class="add-btn" onclick="addToCart(${p.id}); this.textContent='Added ✓';">Add to Cart</button>
-          </div>
-        </div>
+  <div class="product-card">
+    <div class="product-media">
+      <img src="/${p.img}" alt="${p.name}">
+      ${p.qty < 10 ? `<span class="stock-flag">Only ${p.qty} left</span>` : ""}
+    </div>
+    <div class="product-body">
+      <span class="product-cat">${p.cat}</span>
+      <span class="product-name">${p.name}</span>
+      <div class="product-foot">
+        <span class="price-tag">${money(p.salePrice)}<br><small>per ${p.unit}</small></span>
+        <button class="add-btn" onclick="addToCart(${p.id}); alert('${p.name} added to cart!');">Add to Cart</button>
       </div>
-    `).join("");
+    </div>
+  </div>
+  `).join("");
+  }
+
+  function handleAddToCart(btn, id) {
+    if (typeof addToCart === 'function') {
+      addToCart(id);
+    }
+    btn.textContent = 'Added ✓';
+    setTimeout(() => { btn.textContent = 'Add to Cart'; }, 1500);
   }
 
   document.getElementById("filter-list").addEventListener("click", e=>{

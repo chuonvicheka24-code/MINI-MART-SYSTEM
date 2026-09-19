@@ -13,7 +13,6 @@
   <div class="wrap">
     <div class="announce-left">
       <span><i class="fa-solid fa-location-dot"></i> Veng Sreng Blvd, Phnom Penh </span>
-      <span><i class="fa-solid fa-truck"></i> Free Delivery on orders over $49</span>
       <span><i class="fa-solid fa-phone"></i> (123) 456-7890</span>
       <span><i class="fa-regular fa-clock"></i> Mon – Sun: 8:00 AM – 10:00 PM</span>
     </div>
@@ -37,17 +36,43 @@
     </form>
 
     <div class="head-actions">
-      <?php if(auth()->guard()->check()): ?>
-        <a href="<?php echo e(route('admin.index')); ?>" class="mini-link" <?php if (! (auth()->user()->isAdmin())): ?> style="pointer-events:none; opacity:.5;" <?php endif; ?>>
-          <span class="glyph"><i class="fa-solid fa-user"></i></span>
-          <span><?php echo e(auth()->user()->first_name); ?><br><strong><?php echo e(auth()->user()->isAdmin() ? 'Store dashboard' : 'My Account'); ?></strong></span>
-        </a>
-      <?php else: ?>
-        <a href="<?php echo e(route('login')); ?>" class="mini-link"><span class="glyph"><i class="fa-solid fa-user"></i></span><span>Sign In / Register<br><strong>My Account</strong></span></a>
-      <?php endif; ?>
-      <a href="<?php echo e(route('cart.index')); ?>" class="mini-link head-cart"><span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span><span>My Cart<br><strong data-head-cart-total>$0.00</strong></span></a>
-    </div>
-  </div>
+  <?php if(auth()->guard()->check()): ?>
+    <?php if(auth()->user()->isAdmin()): ?>
+      <!-- Admin Link -->
+      <a href="<?php echo e(route('admin.index')); ?>" class="mini-link">
+        <span class="glyph"><i class="fa-solid fa-user"></i></span>
+        <span><?php echo e(auth()->user()->first_name); ?><br><strong>Store dashboard</strong></span>
+      </a>
+    <?php else: ?>
+      <!-- Customer Link -->
+      <div class="mini-link" style="display:flex; align-items:center; gap:8px;">
+        <span class="glyph"><i class="fa-solid fa-user"></i></span>
+        <span><?php echo e(auth()->user()->first_name); ?><br><strong>My Account</strong></span>
+      </div>
+    <?php endif; ?>
+
+    <!-- Logout Form (Works for both Admin and Customer) -->
+    <form action="<?php echo e(route('logout')); ?>" method="POST" style="margin:0;">
+      <?php echo csrf_field(); ?>
+      <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
+        <span class="glyph" style="color:#dc2626;"><i class="fa-solid fa-right-from-bracket"></i></span>
+        <span style="color:#dc2626;">Log Out<br><strong style="color:#dc2626;">Exit</strong></span>
+      </button>
+    </form>
+  <?php else: ?>
+    <!-- Guest Sign In Link -->
+    <a href="<?php echo e(route('login')); ?>" class="mini-link">
+      <span class="glyph"><i class="fa-solid fa-user"></i></span>
+      <span>Sign In / Register<br><strong>My Account</strong></span>
+    </a>
+  <?php endif; ?>
+
+  <!-- Cart Link -->
+  <a href="<?php echo e(route('cart.index')); ?>" class="mini-link head-cart">
+    <span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span>
+    <span>My Cart<br><strong data-head-cart-total>$0.00</strong></span>
+  </a>
+</div>
 
   <div class="wrap nav-row">
     <div class="cat-dropdown-wrap" tabindex="0">
@@ -56,7 +81,7 @@
     </div>
     <nav class="nav-links">
       <a href="<?php echo e(route('home')); ?>" class="<?php echo e(request()->routeIs('home') ? 'active' : ''); ?>">Home</a>
-      <a href="<?php echo e(route('products.index')); ?>" class="<?php echo e(request()->routeIs('products.index') ? 'active' : ''); ?>">Categories ▾</a>
+      <a href="<?php echo e(route('products.index')); ?>" class="<?php echo e(request()->routeIs('products.index') ? 'active' : ''); ?>">Products ▾</a>
       <a href="<?php echo e(route('cart.index')); ?>" class="<?php echo e(request()->routeIs('cart.index') ? 'active' : ''); ?>">Order</a>
       <a href="<?php echo e(route('products.index')); ?>?sort=new">New Arrivals</a>
       <a href="<?php echo e(route('contact.index')); ?>" class="<?php echo e(request()->routeIs('contact.index') ? 'active' : ''); ?>">Contact Us</a>
@@ -121,4 +146,4 @@
 <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 </html>
-<?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+<?php /**PATH E:\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>

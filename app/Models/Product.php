@@ -16,6 +16,7 @@ class Product extends Model
         'qty',
         'discount_percent',
         'date_added',
+        'expiry_date',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'date_added' => 'date',
+            'expiry_date' => 'date',
         ];
     }
 
@@ -34,6 +36,16 @@ class Product extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_product');
     }
 
     /** Price after any active admin discount is applied. */
@@ -49,6 +61,21 @@ class Product extends Model
     public function isLowStock(int $threshold = 10): bool
     {
         return $this->qty < $threshold;
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expiry_date !== null && $this->expiry_date->copy()->endOfDay()->isPast();
+    }
+
+    /** Within the next N days (but not already expired). */
+    public function isExpiringSoon(int $days = 30): bool
+    {
+        if (! $this->expiry_date || $this->isExpired()) {
+            return false;
+        }
+
+        return $this->expiry_date->lessThanOrEqualTo(now()->addDays($days));
     }
 
     /**
@@ -69,6 +96,7 @@ class Product extends Model
             'qty' => $this->qty,
             'img' => $this->image,
             'dateAdded' => optional($this->date_added)->format('Y-m-d'),
+            'expiryDate' => optional($this->expiry_date)->format('Y-m-d'),
         ];
     }
 }

@@ -19,6 +19,8 @@
     <a href="#" class="side-link" data-panel="customers" onclick="showPanel('customers'); return false;"><i class="fa-solid fa-users"></i> Customers</a>
     <a href="#" class="side-link" data-panel="messages" onclick="showPanel('messages'); return false;"><i class="fa-solid fa-envelope"></i> Messages <span class="side-badge" id="side-msg-badge" style="display:none;">0</span></a>
     <a href="#" class="side-link" data-panel="inventory" onclick="showPanel('inventory'); return false;"><i class="fa-solid fa-clipboard-list"></i> Inventory</a>
+    <a href="#" class="side-link" data-panel="purchase-orders" onclick="showPanel('purchase-orders'); return false;"><i class="fa-solid fa-truck-ramp-box"></i> Purchase Orders</a>
+    <a href="#" class="side-link" data-panel="promotions" onclick="showPanel('promotions'); return false;"><i class="fa-solid fa-tags"></i> Promotions</a>
     <a href="#" class="side-link" data-panel="reports" onclick="showPanel('reports'); return false;"><i class="fa-solid fa-chart-line"></i> Reports</a>
     <a href="#" class="side-link" data-panel="settings" onclick="showPanel('settings'); return false;"><i class="fa-solid fa-gear"></i> Settings</a>
     <div class="side-foot">Logged in as <strong>{{ auth()->user()->first_name }}</strong><br>
@@ -76,6 +78,23 @@
                 <div class="field-row">
                   <div class="field"><label for="new-item-price">Cost</label><input id="new-item-price" type="number" step="0.01" min="0" required></div>
                   <div class="field"><label for="new-item-qty">Quantity</label><input id="new-item-qty" type="number" min="0" required></div>
+                </div>
+                <div class="field-row">
+                  <div class="field"><label for="new-item-unit">Unit of measure</label>
+                    <select id="new-item-unit">
+                      <option value="each">each</option>
+                      <option value="kg">kg</option>
+                      <option value="g">g</option>
+                      <option value="l">L</option>
+                      <option value="ml">ml</option>
+                      <option value="pack">pack</option>
+                      <option value="box">box</option>
+                      <option value="dozen">dozen</option>
+                      <option value="bag">bag</option>
+                      <option value="bottle">bottle</option>
+                    </select>
+                  </div>
+                  <div class="field"><label for="new-item-expiry">Expiry date <span class="form-note" style="display:inline;">(optional)</span></label><input id="new-item-expiry" type="date"></div>
                 </div>
                 <button class="btn btn-primary btn-block" type="submit">Add item</button>
               </form>
@@ -185,17 +204,99 @@
       <section class="admin-panel" id="panel-inventory">
         <div class="panel-card">
           <div class="table-toolbar">
-            <h3 style="margin:0;">Stock / Purchase Order</h3>
+            <h3 style="margin:0;">Stock</h3>
             <div style="display:flex; gap:10px;">
               <button class="btn btn-small" onclick="exportInventory()"><i class="fa-solid fa-download"></i> Export</button>
               <button class="btn btn-small" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
-              <button class="btn btn-small btn-accent" onclick="createPurchaseOrder()">+ Purchase Order</button>
+              <button class="btn btn-small btn-accent" onclick="showPanel('purchase-orders')">+ Purchase Order</button>
             </div>
           </div>
           <table class="admin-table">
-            <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Unit</th><th>Qty</th><th>Expiry</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="inventory-body"></tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ============ PURCHASE ORDERS ============ -->
+      <section class="admin-panel" id="panel-purchase-orders">
+        <div class="admin-grid">
+          <div>
+            <div class="panel-card">
+              <h3>New purchase order</h3>
+              <p class="form-note">Manually build an order to send to a supplier. Stock is only added once you mark the order "Received".</p>
+              <form onsubmit="submitPurchaseOrder(event)">
+                <div class="field-row">
+                  <div class="field"><label for="po-supplier">Supplier name</label><input id="po-supplier" required></div>
+                  <div class="field"><label for="po-expected">Expected date <span class="form-note" style="display:inline;">(optional)</span></label><input id="po-expected" type="date"></div>
+                </div>
+                <div class="field">
+                  <label for="po-notes">Notes <span class="form-note" style="display:inline;">(optional)</span></label>
+                  <input id="po-notes" placeholder="e.g. Call ahead, delivery bay 2">
+                </div>
+
+                <div class="field-row" style="align-items:flex-end;">
+                  <div class="field"><label for="po-line-product">Product</label><select id="po-line-product"></select></div>
+                  <div class="field" style="max-width:110px;"><label for="po-line-qty">Qty</label><input id="po-line-qty" type="number" min="1" value="1"></div>
+                  <div class="field" style="max-width:130px;"><label for="po-line-cost">Unit cost</label><input id="po-line-cost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+                  <div class="field" style="flex:0;"><button type="button" class="btn btn-small btn-outline" style="white-space:nowrap;" onclick="addPurchaseOrderLine()">+ Add line</button></div>
+                </div>
+
+                <ul class="low-list" id="po-line-list" style="margin-bottom:14px;"></ul>
+                <p class="form-note" id="po-line-empty">No lines added yet — add at least one product above.</p>
+
+                <button class="btn btn-primary btn-block" type="submit">Create purchase order</button>
+              </form>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-card">
+              <h3>Purchase orders</h3>
+              <table class="admin-table">
+                <thead><tr><th>#</th><th>Supplier</th><th>Items</th><th>Cost</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="po-body"></tbody>
+              </table>
+              <p id="po-empty" style="display:none; margin-top:8px;">No purchase orders yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROMOTIONS ============ -->
+      <section class="admin-panel" id="panel-promotions">
+        <div class="admin-grid">
+          <div>
+            <div class="panel-card">
+              <h3>New promotion</h3>
+              <p class="form-note">Runs a discount campaign across every product you select below.</p>
+              <form onsubmit="submitPromotion(event)">
+                <div class="field"><label for="promo-title">Promotion title</label><input id="promo-title" placeholder="e.g. Weekend Fresh Sale" required></div>
+                <div class="field"><label for="promo-desc">Description <span class="form-note" style="display:inline;">(optional)</span></label><input id="promo-desc"></div>
+                <div class="field-row">
+                  <div class="field"><label for="promo-discount">Discount %</label><input id="promo-discount" type="number" min="1" max="90" value="10" required></div>
+                  <div class="field"><label for="promo-starts">Start date <span class="form-note" style="display:inline;">(optional)</span></label><input id="promo-starts" type="date"></div>
+                  <div class="field"><label for="promo-ends">End date <span class="form-note" style="display:inline;">(optional)</span></label><input id="promo-ends" type="date"></div>
+                </div>
+                <div class="field">
+                  <label>Products in this promotion</label>
+                  <div id="promo-product-list" style="max-height:220px; overflow-y:auto; border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:10px 13px;"></div>
+                </div>
+                <button class="btn btn-primary btn-block" type="submit">Launch promotion</button>
+              </form>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-card">
+              <h3>Promotions</h3>
+              <table class="admin-table">
+                <thead><tr><th>Title</th><th>Products</th><th>Discount</th><th>Dates</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="promotions-body"></tbody>
+              </table>
+              <p id="promotions-empty" style="display:none; margin-top:8px;">No promotions yet.</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -286,7 +387,8 @@
   window.MM_ADMIN_DATA = @json($data);
   window.MM_ADMIN_ROUTES = {
     products: "{{ url('/admin/api/products') }}",
-    purchaseOrder: "{{ route('admin.purchaseOrder') }}",
+    purchaseOrders: "{{ url('/admin/api/purchase-orders') }}",
+    promotions: "{{ url('/admin/api/promotions') }}",
     orders: "{{ url('/admin/api/orders') }}",
     staff: "{{ url('/admin/api/staff') }}",
     messages: "{{ url('/admin/api/messages') }}",

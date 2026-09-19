@@ -16,7 +16,6 @@
           </div>
           <div class="hero-trust">
             <div><i class="fa-solid fa-seedling"></i> <span><strong>Farm Fresh</strong><small>Quality Produce</small></span></div>
-            <div><i class="fa-solid fa-truck"></i> <span><strong>Free Delivery</strong><small>On orders over $49</small></span></div>
             <div><i class="fa-solid fa-lock"></i> <span><strong>Secure Payment</strong><small>100% Protected</small></span></div>
             <div><i class="fa-solid fa-rotate-left"></i> <span><strong>Easy Returns</strong><small>7 Days Return</small></span></div>
           </div>
@@ -211,4 +210,4 @@
 </script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\minimart\resources\views/home/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/home/index.blade.php ENDPATH**/ ?>

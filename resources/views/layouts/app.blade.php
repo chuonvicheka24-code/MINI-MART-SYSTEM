@@ -13,7 +13,6 @@
   <div class="wrap">
     <div class="announce-left">
       <span><i class="fa-solid fa-location-dot"></i> Veng Sreng Blvd, Phnom Penh </span>
-      <span><i class="fa-solid fa-truck"></i> Free Delivery on orders over $49</span>
       <span><i class="fa-solid fa-phone"></i> (123) 456-7890</span>
       <span><i class="fa-regular fa-clock"></i> Mon – Sun: 8:00 AM – 10:00 PM</span>
     </div>
@@ -37,17 +36,43 @@
     </form>
 
     <div class="head-actions">
-      @auth
-        <a href="{{ route('admin.index') }}" class="mini-link" @unless(auth()->user()->isAdmin()) style="pointer-events:none; opacity:.5;" @endunless>
-          <span class="glyph"><i class="fa-solid fa-user"></i></span>
-          <span>{{ auth()->user()->first_name }}<br><strong>{{ auth()->user()->isAdmin() ? 'Store dashboard' : 'My Account' }}</strong></span>
-        </a>
-      @else
-        <a href="{{ route('login') }}" class="mini-link"><span class="glyph"><i class="fa-solid fa-user"></i></span><span>Sign In / Register<br><strong>My Account</strong></span></a>
-      @endauth
-      <a href="{{ route('cart.index') }}" class="mini-link head-cart"><span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span><span>My Cart<br><strong data-head-cart-total>$0.00</strong></span></a>
-    </div>
-  </div>
+  @auth
+    @if(auth()->user()->isAdmin())
+      <!-- Admin Link -->
+      <a href="{{ route('admin.index') }}" class="mini-link">
+        <span class="glyph"><i class="fa-solid fa-user"></i></span>
+        <span>{{ auth()->user()->first_name }}<br><strong>Store dashboard</strong></span>
+      </a>
+    @else
+      <!-- Customer Link -->
+      <div class="mini-link" style="display:flex; align-items:center; gap:8px;">
+        <span class="glyph"><i class="fa-solid fa-user"></i></span>
+        <span>{{ auth()->user()->first_name }}<br><strong>My Account</strong></span>
+      </div>
+    @endif
+
+    <!-- Logout Form (Works for both Admin and Customer) -->
+    <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+      @csrf
+      <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
+        <span class="glyph" style="color:#dc2626;"><i class="fa-solid fa-right-from-bracket"></i></span>
+        <span style="color:#dc2626;">Log Out<br><strong style="color:#dc2626;">Exit</strong></span>
+      </button>
+    </form>
+  @else
+    <!-- Guest Sign In Link -->
+    <a href="{{ route('login') }}" class="mini-link">
+      <span class="glyph"><i class="fa-solid fa-user"></i></span>
+      <span>Sign In / Register<br><strong>My Account</strong></span>
+    </a>
+  @endauth
+
+  <!-- Cart Link -->
+  <a href="{{ route('cart.index') }}" class="mini-link head-cart">
+    <span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span>
+    <span>My Cart<br><strong data-head-cart-total>$0.00</strong></span>
+  </a>
+</div>
 
   <div class="wrap nav-row">
     <div class="cat-dropdown-wrap" tabindex="0">
@@ -56,7 +81,7 @@
     </div>
     <nav class="nav-links">
       <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
-      <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') ? 'active' : '' }}">Categories ▾</a>
+      <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') ? 'active' : '' }}">Products ▾</a>
       <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.index') ? 'active' : '' }}">Order</a>
       <a href="{{ route('products.index') }}?sort=new">New Arrivals</a>
       <a href="{{ route('contact.index') }}" class="{{ request()->routeIs('contact.index') ? 'active' : '' }}">Contact Us</a>

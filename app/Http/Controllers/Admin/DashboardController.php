@@ -8,6 +8,8 @@ use App\Models\ContactMessage;
 use App\Models\DeliveryStaff;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Promotion;
+use App\Models\PurchaseOrder;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\View\View;
@@ -23,6 +25,8 @@ class DashboardController extends Controller
         $customers = User::where('role', 'customer')->withCount('orders')->orderBy('first_name')->get();
         $messages = ContactMessage::orderByDesc('created_at')->get();
         $settings = Setting::current();
+        $purchaseOrders = PurchaseOrder::with('items')->orderByDesc('id')->get();
+        $promotions = Promotion::with('products')->orderByDesc('id')->get();
 
         $data = [
             'products' => $products->map(fn ($p) => $p->toStorefrontArray() + ['discountPercent' => $p->discount_percent])->values(),
@@ -61,6 +65,8 @@ class DashboardController extends Controller
                 'deliveryRate' => (float) $settings->delivery_rate,
                 'lowStockThreshold' => $settings->low_stock_threshold,
             ],
+            'purchaseOrders' => $purchaseOrders->map(fn ($po) => $po->toAdminArray())->values(),
+            'promotions' => $promotions->map(fn ($p) => $p->toAdminArray())->values(),
         ];
 
         return view('admin.dashboard', compact('data', 'categories'));

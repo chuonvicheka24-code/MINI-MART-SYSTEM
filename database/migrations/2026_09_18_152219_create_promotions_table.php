@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
 {
-    Schema::create('categories', function (Blueprint $table) {
+    Schema::create('promotions', function (Blueprint $table) {
         $table->id();
-        $table->string('name');
-        $table->string('slug')->nullable();
-        $table->string('icon')->nullable();
-        $table->string('image')->nullable();
+        $table->string('title')->nullable();
+        $table->text('description')->nullable();
+        $table->string('code')->nullable();
+        $table->decimal('discount_percentage', 5, 2)->nullable();
         $table->timestamps();
     });
 }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('promotions');
     }
 };

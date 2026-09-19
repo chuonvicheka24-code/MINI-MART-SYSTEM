@@ -18,7 +18,6 @@
           </div>
           <div class="hero-trust">
             <div><i class="fa-solid fa-seedling"></i> <span><strong>Farm Fresh</strong><small>Quality Produce</small></span></div>
-            <div><i class="fa-solid fa-truck"></i> <span><strong>Free Delivery</strong><small>On orders over $49</small></span></div>
             <div><i class="fa-solid fa-lock"></i> <span><strong>Secure Payment</strong><small>100% Protected</small></span></div>
             <div><i class="fa-solid fa-rotate-left"></i> <span><strong>Easy Returns</strong><small>7 Days Return</small></span></div>
           </div>

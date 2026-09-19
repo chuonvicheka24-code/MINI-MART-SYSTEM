@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +18,8 @@ class ProductController extends Controller
             'category' => 'required|string|max:100',
             'price' => 'required|numeric|min:0',
             'qty' => 'required|integer|min:0',
+            'unit' => 'nullable|string|max:20',
+            'expiry_date' => 'nullable|date',
             'image' => 'nullable|string',
         ]);
 
@@ -32,11 +33,12 @@ class ProductController extends Controller
             'category_id' => $category->id,
             'name' => $data['name'],
             'price' => $data['price'],
-            'unit' => 'each',
+            'unit' => $data['unit'] ?: 'each',
             'emoji' => '🧺',
             'qty' => $data['qty'],
             'image' => $data['image'] ?? null,
             'date_added' => now()->toDateString(),
+            'expiry_date' => $data['expiry_date'] ?? null,
         ]);
 
         return response()->json([
@@ -46,15 +48,25 @@ class ProductController extends Controller
         ]);
     }
 
-    /** Quick "edit price / quantity" action from the inventory table. */
+    /** Edit action from the inventory table — price, quantity, unit and expiry date. */
     public function update(Request $request, Product $product): JsonResponse
     {
         $data = $request->validate([
             'price' => 'nullable|numeric|min:0',
             'qty' => 'nullable|integer|min:0',
+            'unit' => 'nullable|string|max:20',
+            'expiry_date' => 'nullable|date',
+            'clear_expiry_date' => 'nullable|boolean',
         ]);
 
-        $product->update(array_filter($data, fn ($v) => $v !== null));
+        $update = array_filter($data, fn ($v) => $v !== null);
+        unset($update['clear_expiry_date']);
+
+        if ($request->boolean('clear_expiry_date')) {
+            $update['expiry_date'] = null;
+        }
+
+        $product->update($update);
 
         return response()->json(['product' => $this->present($product->fresh('category'))]);
     }
@@ -87,22 +99,6 @@ class ProductController extends Controller
         $product->increment('qty', 20);
 
         return response()->json(['product' => $this->present($product->fresh('category'))]);
-    }
-
-    /** Bulk restock everything under 2x the low-stock threshold. */
-    public function purchaseOrder(): JsonResponse
-    {
-        $threshold = Setting::current()->low_stock_threshold * 2;
-        $low = Product::where('qty', '<', $threshold)->get();
-
-        foreach ($low as $product) {
-            $product->increment('qty', 20);
-        }
-
-        return response()->json([
-            'count' => $low->count(),
-            'products' => $low->fresh('category')->map(fn ($p) => $this->present($p)),
-        ]);
     }
 
     private function present(Product $product): array

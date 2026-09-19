@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Checkout — Mini Mart'); ?>
 
-@section('title', 'Checkout — Mini Mart')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <div class="page-head no-print">
   <div class="wrap">
@@ -35,8 +33,8 @@
 
       <h3 style="margin-top:24px;">Contact for this order</h3>
       <div class="field-row">
-        <div class="field"><label for="phone">Phone number</label><input id="phone" type="tel" placeholder="+855 12 345 678" value="{{ auth()->user()->phone ?? '' }}"></div>
-        <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" value="{{ auth()->user()->email ?? '' }}"></div>
+        <div class="field"><label for="phone">Phone number</label><input id="phone" type="tel" placeholder="+855 12 345 678" value="<?php echo e(auth()->user()->phone ?? ''); ?>"></div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@example.com" value="<?php echo e(auth()->user()->email ?? ''); ?>"></div>
       </div>
 
       <div class="field"><label for="pay">Payment method</label>
@@ -50,7 +48,7 @@
     <div>
       <div class="card" style="margin-bottom:20px; padding:10px;">
         <div class="map-card">
-          <img src="{{ asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg') }}" alt="Delivery route map">
+          <img src="<?php echo e(asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg')); ?>" alt="Delivery route map">
           <svg class="route-svg" viewBox="0 0 400 260" preserveAspectRatio="none">
             <path d="M70,190 C140,140 180,230 260,150 S 330,70 340,60" fill="none" stroke="#1E63D6" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 10"/>
           </svg>
@@ -95,16 +93,16 @@
     </div>
     <div style="max-width:640px; margin: 22px auto 0; display:flex; gap:12px; justify-content:center;" class="no-print">
       <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print invoice</button>
-      <a href="{{ route('home') }}" class="btn btn-ghost">Back to home</a>
+      <a href="<?php echo e(route('home')); ?>" class="btn btn-ghost">Back to home</a>
     </div>
   </div>
 </section>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
-  window.MM_PRODUCTS = @json(\App\Models\Product::all()->map->toStorefrontArray());
+  window.MM_PRODUCTS = <?php echo json_encode(\App\Models\Product::all()->map->toStorefrontArray(), 15, 512) ?>;
 
   function paintSummary(){
     const subtotal = cartSubtotal();
@@ -115,7 +113,7 @@
 
     if(cartLines().length === 0){
       document.getElementById("checkout-section").innerHTML =
-        '<div class="wrap"><p>Your basket is empty. <a href="{{ route('products.index') }}" style="color:var(--brand-dark); text-decoration:underline; font-weight:600;">Add something first →</a></p></div>';
+        '<div class="wrap"><p>Your basket is empty. <a href="<?php echo e(route('products.index')); ?>" style="color:var(--brand-dark); text-decoration:underline; font-weight:600;">Add something first →</a></p></div>';
     }
   }
   refreshCartCache().then(paintSummary);
@@ -172,4 +170,6 @@
     });
   }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/checkout/index.blade.php ENDPATH**/ ?>

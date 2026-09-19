@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MessageController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\PromotionController;
+use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Auth\LoginController;
@@ -66,7 +68,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/api/products/{product}/discount', [AdminProductController::class, 'discount'])->name('products.discount');
     Route::delete('/api/products/{product}/discount', [AdminProductController::class, 'removeDiscount'])->name('products.removeDiscount');
     Route::post('/api/products/{product}/reorder', [AdminProductController::class, 'reorder'])->name('products.reorder');
-    Route::post('/api/purchase-order', [AdminProductController::class, 'purchaseOrder'])->name('purchaseOrder');
+
+    Route::post('/api/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchaseOrders.store');
+    Route::post('/api/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->name('purchaseOrders.receive');
+    Route::delete('/api/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'destroy'])->name('purchaseOrders.destroy');
+
+    Route::post('/api/promotions', [PromotionController::class, 'store'])->name('promotions.store');
+    Route::delete('/api/promotions/{promotion}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
 
     Route::post('/api/orders/{order}/approve', [OrderController::class, 'approve'])->name('orders.approve');
     Route::post('/api/orders/{order}/deliver', [OrderController::class, 'deliver'])->name('orders.deliver');

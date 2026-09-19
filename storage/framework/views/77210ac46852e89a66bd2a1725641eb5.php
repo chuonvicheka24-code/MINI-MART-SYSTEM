@@ -14,10 +14,10 @@
     <div class="field"><label for="l-pass">Password</label><input id="l-pass" name="password" type="password" required placeholder="••••••••"></div>
     <button class="btn btn-primary btn-block" type="submit">Log in</button>
     <p class="form-switch">New to Mini Mart? <a href="<?php echo e(route('register')); ?>" style="color:var(--brand-dark); text-decoration:underline; font-weight:600;">Create an account</a></p>
-    <p class="form-note" style="margin-top:14px;">Store admin demo login: <strong>admin@minimart.test</strong> / <strong>password</strong></p>
+    <p class="form-note" style="margin-top:14px;">Store admin demo login: <strong>admin@minimart.com</strong> / <strong>1234</strong></p>
   </form>
 </section>
 
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\minimart\resources\views/auth/login.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/auth/login.blade.php ENDPATH**/ ?>
