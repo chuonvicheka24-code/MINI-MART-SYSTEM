@@ -100,7 +100,13 @@
         <td>
           <div class="qty-control">
             <button onclick="changeQty(${l.id}, -1)" aria-label="Decrease quantity">−</button>
-            <input type="text" value="${l.qty}" readonly>
+            <input 
+              type="number" 
+              value="${l.qty}" 
+              min="1" 
+              style="width: 55px; text-align: center; font-weight: 600; border: 1px solid var(--line, #e5e7eb); border-radius: 4px; padding: 4px;"
+              onchange="setManualQty(${l.id}, this.value)"
+            >
             <button onclick="changeQty(${l.id}, 1)" aria-label="Increase quantity">+</button>
           </div>
         </td>
@@ -126,6 +132,13 @@
   function changeQty(id, delta){
     const line = cartLines().find(l => l.id === id);
     const newQty = line ? line.qty + delta : 0;
+    setCartQty(id, newQty).then(renderCart);
+  }
+
+  // Handle direct typed values in the quantity field
+  function setManualQty(id, value){
+    let newQty = parseInt(value) || 1;
+    if (newQty < 1) newQty = 1;
     setCartQty(id, newQty).then(renderCart);
   }
 

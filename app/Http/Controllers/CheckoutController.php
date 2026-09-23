@@ -96,7 +96,11 @@ class CheckoutController extends Controller
 
         session()->forget(CartController::SESSION_KEY);
 
+        session()->forget(CartController::SESSION_KEY);
+
         return response()->json([
+            'message' => 'Order placed successfully!',
+            'redirect_url' => route('orders.index', ['order_id' => $order->id]),
             'order' => [
                 'number' => $order->id,
                 'date' => $order->placed_at->toDayDateTimeString(),
@@ -115,3 +119,5 @@ class CheckoutController extends Controller
         ]);
     }
 }
+    
+

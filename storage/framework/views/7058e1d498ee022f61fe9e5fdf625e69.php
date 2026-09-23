@@ -69,6 +69,7 @@
   </div>
 </section>
 
+
 <section class="section" id="invoice-section" style="display:none;">
   <div class="wrap">
     <div class="invoice">
@@ -91,9 +92,11 @@
       <div class="summary-row"><span>Delivery (10%)</span><span id="inv-delivery"></span></div>
       <div class="summary-row total"><span>Total paid</span><span id="inv-total"></span></div>
     </div>
+    
+    
     <div style="max-width:640px; margin: 22px auto 0; display:flex; gap:12px; justify-content:center;" class="no-print">
       <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print invoice</button>
-      <a href="<?php echo e(route('home')); ?>" class="btn btn-ghost">Back to home</a>
+      <a id="back-home-btn" href="#" class="btn btn-ghost">Order Process</a>
     </div>
   </div>
 </section>
@@ -111,7 +114,7 @@
     document.getElementById("sum-delivery").textContent = money(delivery);
     document.getElementById("sum-total").textContent = money(subtotal + delivery);
 
-    if(cartLines().length === 0){
+    if(cartLines().length === 0 && document.getElementById("invoice-section").style.display === "none"){
       document.getElementById("checkout-section").innerHTML =
         '<div class="wrap"><p>Your basket is empty. <a href="<?php echo e(route('products.index')); ?>" style="color:var(--brand-dark); text-decoration:underline; font-weight:600;">Add something first →</a></p></div>';
     }
@@ -149,27 +152,62 @@
     })
     .then(r => r.json().then(data => ({ ok: r.ok, data })))
     .then(({ ok, data }) => {
-      if(!ok){ alert(data.message || "Could not place the order."); btn.disabled = false; btn.textContent = "Confirm Delivery"; return; }
+      if(!ok){ 
+        alert(data.message || "Could not place the order."); 
+        btn.disabled = false; 
+        btn.textContent = "Confirm Delivery"; 
+        return; 
+      }
 
-      const order = data.order;
-      document.getElementById("inv-number").textContent = order.number;
-      document.getElementById("inv-date").textContent = order.date;
-      document.getElementById("inv-mode").textContent = order.mode;
-      document.getElementById("inv-pay").textContent = order.pay;
-      document.getElementById("inv-body").innerHTML = order.items.map(i => `
-        <tr><td>${i.name}</td><td>${i.qty}</td><td>${money(i.price)}</td><td>${money(i.lineTotal)}</td></tr>
-      `).join("");
-      document.getElementById("inv-subtotal").textContent = money(order.subtotal);
-      document.getElementById("inv-delivery").textContent = money(order.delivery);
-      document.getElementById("inv-total").textContent = money(order.total);
+      // Populate Invoice UI Data
+      const orderId = data.order_id || data.id || "1043";
+      document.getElementById("inv-number").textContent = orderId;
+      document.getElementById("inv-date").textContent = new Date().toLocaleString('en-US', { 
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true 
+      });
+      document.getElementById("inv-mode").textContent = payload.transport_type === 'truck' ? 'Truck' : 'Motorcycle';
+      document.getElementById("inv-pay").textContent = payload.payment_method;
+
+      // Render items table
+      const subtotal = cartSubtotal();
+      const delivery = subtotal * 0.10;
+      const total = subtotal + delivery;
+
+      let itemsHtml = '';
+      lines.forEach(line => {
+        itemsHtml += `
+          <tr>
+            <td>${line.product.name}</td>
+            <td>${line.qty}</td>
+            <td>${money(line.product.price)}</td>
+            <td>${money(line.product.price * line.qty)}</td>
+          </tr>
+        `;
+      });
+      document.getElementById("inv-body").innerHTML = itemsHtml;
+      document.getElementById("inv-subtotal").textContent = money(subtotal);
+      document.getElementById("inv-delivery").textContent = money(delivery);
+      document.getElementById("inv-total").textContent = money(total);
+
+      // Set "Back to Home" URL to the Delivery Process / Order Tracking view
+      const targetUrl = data.redirect_url || (`/orders/` + orderId);
+      document.getElementById("back-home-btn").href = targetUrl;
+
+      // Clear local storage and switch views
+      localStorage.removeItem("cart");
+      refreshCartCache();
 
       document.getElementById("checkout-section").style.display = "none";
+      document.querySelector(".page-head").style.display = "none";
       document.getElementById("invoice-section").style.display = "block";
-      refreshCartCache();
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
+    })
+    .catch(err => {
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = "Confirm Delivery";
     });
   }
 </script>
 <?php $__env->stopPush(); ?>
-
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/checkout/index.blade.php ENDPATH**/ ?>

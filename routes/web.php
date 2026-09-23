@@ -16,6 +16,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OrderController as CustomerOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,9 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
+
 
 /*
 |--------------------------------------------------------------------------
