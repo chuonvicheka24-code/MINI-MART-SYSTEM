@@ -20,6 +20,7 @@ class OrderItem extends Model
     {
         return [
             'price' => 'decimal:2',
+            'qty' => 'float',
             'line_total' => 'decimal:2',
         ];
     }

@@ -111,7 +111,7 @@
 
   function paintSummary(){
     const subtotal = cartSubtotal();
-    const delivery = subtotal * DELIVERY_RATE;
+    const delivery = subtotal * (window.DELIVERY_RATE || 0.1);
     document.getElementById("sum-subtotal").textContent = money(subtotal);
     document.getElementById("sum-delivery").textContent = money(delivery);
     document.getElementById("sum-total").textContent = money(subtotal + delivery);
@@ -123,10 +123,10 @@
   }
   refreshCartCache().then(paintSummary);
 
-  document.getElementById("transport-row").addEventListener("click", e=>{
+  document.getElementById("transport-row")?.addEventListener("click", e => {
     const opt = e.target.closest(".radio-pill");
     if(!opt) return;
-    document.querySelectorAll(".radio-pill").forEach(o=>o.classList.remove("selected"));
+    document.querySelectorAll(".radio-pill").forEach(o => o.classList.remove("selected"));
     opt.classList.add("selected");
     opt.querySelector("input").checked = true;
   });
@@ -135,21 +135,26 @@
     const lines = cartLines();
     if(!lines.length) return;
     const btn = document.getElementById("confirm-btn");
-    btn.disabled = true; btn.textContent = "Placing order…";
+    btn.disabled = true; 
+    btn.textContent = "Placing order…";
 
     const payload = {
-      truck_number: document.getElementById("truck-number").value,
-      location: document.getElementById("location").value,
-      address: document.getElementById("address").value,
-      transport_type: document.querySelector('input[name="delivery"]:checked').value,
-      phone: document.getElementById("phone").value,
-      email: document.getElementById("email").value,
-      payment_method: document.getElementById("pay").value,
+      truck_number: document.getElementById("truck-number")?.value || "",
+      location: document.getElementById("location")?.value || "",
+      address: document.getElementById("address")?.value || "",
+      transport_type: document.querySelector('input[name="delivery"]:checked')?.value || "truck",
+      phone: document.getElementById("phone")?.value || "",
+      email: document.getElementById("email")?.value || "",
+      payment_method: document.getElementById("pay")?.value || "Cash on delivery",
     };
 
     fetch(window.MM_ROUTES.checkoutStore, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": window.MM_CSRF },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Accept": "application/json", 
+        "X-CSRF-TOKEN": window.MM_CSRF 
+      },
       body: JSON.stringify(payload),
     })
     .then(r => r.json().then(data => ({ ok: r.ok, data })))
@@ -162,7 +167,7 @@
       }
 
       // Populate Invoice UI Data
-      const orderId = data.order_id || data.id || "1043";
+      const orderId = data.order_id || data.order?.number || data.id || "1043";
       document.getElementById("inv-number").textContent = orderId;
       document.getElementById("inv-date").textContent = new Date().toLocaleString('en-US', { 
         weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true 
@@ -170,37 +175,42 @@
       document.getElementById("inv-mode").textContent = payload.transport_type === 'truck' ? 'Truck' : 'Motorcycle';
       document.getElementById("inv-pay").textContent = payload.payment_method;
 
-      // Render items table
+      // Render items table using floating quantities and salePrice
       const subtotal = cartSubtotal();
-      const delivery = subtotal * 0.10;
+      const delivery = subtotal * (window.DELIVERY_RATE || 0.10);
       const total = subtotal + delivery;
 
       let itemsHtml = '';
       lines.forEach(line => {
+        const qty = parseFloat(line.qty);
+        const price = line.product.salePrice ?? line.product.price;
         itemsHtml += `
           <tr>
             <td>${line.product.name}</td>
-            <td>${line.qty}</td>
-            <td>${money(line.product.price)}</td>
-            <td>${money(line.product.price * line.qty)}</td>
+            <td>${qty} ${line.product.unit || ''}</td>
+            <td>${money(price)}</td>
+            <td>${money(price * qty)}</td>
           </tr>
         `;
       });
+      
       document.getElementById("inv-body").innerHTML = itemsHtml;
       document.getElementById("inv-subtotal").textContent = money(subtotal);
       document.getElementById("inv-delivery").textContent = money(delivery);
       document.getElementById("inv-total").textContent = money(total);
 
-      // Set "Back to Home" URL to the Delivery Process / Order Tracking view
+      // Set "Back to Home" URL to the Order Tracking view
       const targetUrl = data.redirect_url || (`/orders/` + orderId);
       document.getElementById("back-home-btn").href = targetUrl;
 
-      // Clear local storage and switch views
+      // Clear cart session and switch views
       localStorage.removeItem("cart");
       refreshCartCache();
 
       document.getElementById("checkout-section").style.display = "none";
-      document.querySelector(".page-head").style.display = "none";
+      if (document.querySelector(".page-head")) {
+        document.querySelector(".page-head").style.display = "none";
+      }
       document.getElementById("invoice-section").style.display = "block";
       window.scrollTo(0, 0);
     })

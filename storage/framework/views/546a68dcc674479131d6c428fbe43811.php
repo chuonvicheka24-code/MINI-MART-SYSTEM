@@ -141,9 +141,11 @@
   window.MM_CATEGORIES = <?php echo json_encode($categories->pluck('name'), 15, 512) ?>;
   window.MM_CATEGORY_ICONS = <?php echo json_encode($categories->pluck('icon', 'name'), 512) ?>;
   window.MM_CATEGORY_IMAGES = <?php echo json_encode($categories->pluck('image', 'name'), 512) ?>;
+  
+  // Inject global products if passed from controller/ViewShare
+  window.MM_PRODUCTS = <?php echo json_encode(isset($products) ? $products->map->toStorefrontArray() : [], 15, 512) ?>;
 </script>
 <script src="<?php echo e(asset('js/app.js')); ?>"></script>
 <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
-</html>
-<?php /**PATH E:\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>

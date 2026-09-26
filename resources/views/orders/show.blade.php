@@ -218,29 +218,34 @@
                 </div>
 
                 @forelse($order->items as $item)
+                @php
+                    $productName = $item->product->name ?? $item->product_name ?? 'Product';
+                    $itemQty = (float)($item->qty ?? 1);
+                    $itemPrice = (float)($item->price ?? ($item->product->salePrice ?? $item->product->price ?? 0));
+                    $lineTotal = $itemPrice * $itemQty;
+                    $itemUnit = $item->unit ?? $item->product->unit ?? '';
+
+                    $img = $item->product->image ?? $item->image ?? null;
+                    if ($img) {
+                        if (\Illuminate\Support\Str::startsWith($img, ['http://', 'https://'])) {
+                            $imgSrc = $img;
+                        } elseif (\Illuminate\Support\Str::startsWith($img, 'storage/') || \Illuminate\Support\Str::startsWith($img, '/storage/')) {
+                            $imgSrc = asset($img);
+                        } elseif (\Illuminate\Support\Str::startsWith($img, 'Photo/')) {
+                            $imgSrc = asset($img);
+                        } else {
+                            $imgSrc = asset('storage/' . ltrim($img, '/'));
+                        }
+                    } else {
+                        $imgSrc = null;
+                    }
+                @endphp
                 <div class="item-row">
                     <div class="item-info">
-                        @php
-                            $img = $item->product->image ?? null;
-                            if ($img) {
-                                if (\Illuminate\Support\Str::startsWith($img, ['http://', 'https://'])) {
-                                    $imgSrc = $img;
-                                } elseif (\Illuminate\Support\Str::startsWith($img, 'storage/') || \Illuminate\Support\Str::startsWith($img, '/storage/')) {
-                                    $imgSrc = asset($img);
-                                } elseif (\Illuminate\Support\Str::startsWith($img, 'Photo/')) {
-                                    $imgSrc = asset($img);
-                                } else {
-                                    $imgSrc = asset('storage/' . ltrim($img, '/'));
-                                }
-                            } else {
-                                $imgSrc = null;
-                            }
-                        @endphp
-
                         @if($imgSrc)
                             <img src="{{ $imgSrc }}" 
                                  class="item-img" 
-                                 alt="{{ $item->product->name ?? 'Product' }}"
+                                 alt="{{ $productName }}"
                                  onerror="this.onerror=null; this.src='https://placehold.co/56x56?text=No+Img';">
                         @else
                             <div class="item-img d-flex align-items-center justify-content-center bg-light text-muted">
@@ -249,12 +254,12 @@
                         @endif
 
                         <div>
-                            <div class="item-name">{{ $item->product->name ?? 'Product' }}</div>
-                            <div class="item-qty">Quantity: {{ $item->qty }}</div>
+                            <div class="item-name">{{ $productName }}</div>
+                            <div class="item-qty">Quantity: {{ $itemQty }} {{ $itemUnit }}</div>
                         </div>
                     </div>
                     <div class="fw-bold" style="color: #0f172a;">
-                        ${{ number_format(($item->price ?? 0) * $item->qty, 2) }}
+                        ${{ number_format($lineTotal, 2) }}
                     </div>
                 </div>
                 @empty

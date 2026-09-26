@@ -50,7 +50,9 @@ class CheckoutController extends Controller
             $subtotal = 0;
             foreach ($cart as $id => $qty) {
                 if ($product = $products->get($id)) {
-                    $subtotal += $product->sale_price * $qty;
+                    // Force float to ensure 1.5kg calculates correctly
+                    $floatQty = (float) $qty;
+                    $subtotal += $product->sale_price * $floatQty;
                 }
             }
             $deliveryFee = round($subtotal * ($settings->delivery_rate / 100), 2);
@@ -77,18 +79,21 @@ class CheckoutController extends Controller
                 if (! $product) {
                     continue;
                 }
+
+                $floatQty = (float) $qty; // Explicit float conversion
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                     'unit' => $product->unit,
                     'price' => $product->sale_price,
-                    'qty' => $qty,
-                    'line_total' => round($product->sale_price * $qty, 2),
+                    'qty' => $floatQty, // Saved as float decimal
+                    'line_total' => round($product->sale_price * $floatQty, 2),
                 ]);
 
-                // Stock is real now — decrement it (never below zero).
-                $product->decrement('qty', min($qty, $product->qty));
+                // Stock decrement supports decimal quantities
+                $product->decrement('qty', min($floatQty, (float) $product->qty));
             }
 
             return $order;
@@ -96,11 +101,9 @@ class CheckoutController extends Controller
 
         session()->forget(CartController::SESSION_KEY);
 
-        session()->forget(CartController::SESSION_KEY);
-
         return response()->json([
             'message' => 'Order placed successfully!',
-            'redirect_url' => route('orders.index', ['order_id' => $order->id]),
+            'redirect_url' => route('orders.show', $order->id),
             'order' => [
                 'number' => $order->id,
                 'date' => $order->placed_at->toDayDateTimeString(),
@@ -108,7 +111,7 @@ class CheckoutController extends Controller
                 'pay' => $order->payment_method,
                 'items' => $order->items->map(fn ($i) => [
                     'name' => $i->product_name,
-                    'qty' => $i->qty,
+                    'qty' => (float) $i->qty,
                     'price' => (float) $i->price,
                     'lineTotal' => (float) $i->line_total,
                 ]),
@@ -119,5 +122,3 @@ class CheckoutController extends Controller
         ]);
     }
 }
-    
-
