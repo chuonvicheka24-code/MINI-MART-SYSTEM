@@ -71,6 +71,7 @@
   </div>
 </section>
 
+{{-- Invoice View Shown Upon Confirmation --}}
 <section class="section" id="invoice-section" style="display:none;">
   <div class="wrap">
     <div class="invoice">
@@ -93,9 +94,11 @@
       <div class="summary-row"><span>Delivery (10%)</span><span id="inv-delivery"></span></div>
       <div class="summary-row total"><span>Total paid</span><span id="inv-total"></span></div>
     </div>
+    
+    {{-- Back to Home Button Links directly to Delivery Process page --}}
     <div style="max-width:640px; margin: 22px auto 0; display:flex; gap:12px; justify-content:center;" class="no-print">
       <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print invoice</button>
-      <a href="{{ route('home') }}" class="btn btn-ghost">Back to home</a>
+      <a id="back-home-btn" href="#" class="btn btn-ghost">Order Process</a>
     </div>
   </div>
 </section>
@@ -108,22 +111,22 @@
 
   function paintSummary(){
     const subtotal = cartSubtotal();
-    const delivery = subtotal * DELIVERY_RATE;
+    const delivery = subtotal * (window.DELIVERY_RATE || 0.1);
     document.getElementById("sum-subtotal").textContent = money(subtotal);
     document.getElementById("sum-delivery").textContent = money(delivery);
     document.getElementById("sum-total").textContent = money(subtotal + delivery);
 
-    if(cartLines().length === 0){
+    if(cartLines().length === 0 && document.getElementById("invoice-section").style.display === "none"){
       document.getElementById("checkout-section").innerHTML =
         '<div class="wrap"><p>Your basket is empty. <a href="{{ route('products.index') }}" style="color:var(--brand-dark); text-decoration:underline; font-weight:600;">Add something first →</a></p></div>';
     }
   }
   refreshCartCache().then(paintSummary);
 
-  document.getElementById("transport-row").addEventListener("click", e=>{
+  document.getElementById("transport-row")?.addEventListener("click", e => {
     const opt = e.target.closest(".radio-pill");
     if(!opt) return;
-    document.querySelectorAll(".radio-pill").forEach(o=>o.classList.remove("selected"));
+    document.querySelectorAll(".radio-pill").forEach(o => o.classList.remove("selected"));
     opt.classList.add("selected");
     opt.querySelector("input").checked = true;
   });
@@ -132,43 +135,89 @@
     const lines = cartLines();
     if(!lines.length) return;
     const btn = document.getElementById("confirm-btn");
-    btn.disabled = true; btn.textContent = "Placing order…";
+    btn.disabled = true; 
+    btn.textContent = "Placing order…";
 
     const payload = {
-      truck_number: document.getElementById("truck-number").value,
-      location: document.getElementById("location").value,
-      address: document.getElementById("address").value,
-      transport_type: document.querySelector('input[name="delivery"]:checked').value,
-      phone: document.getElementById("phone").value,
-      email: document.getElementById("email").value,
-      payment_method: document.getElementById("pay").value,
+      truck_number: document.getElementById("truck-number")?.value || "",
+      location: document.getElementById("location")?.value || "",
+      address: document.getElementById("address")?.value || "",
+      transport_type: document.querySelector('input[name="delivery"]:checked')?.value || "truck",
+      phone: document.getElementById("phone")?.value || "",
+      email: document.getElementById("email")?.value || "",
+      payment_method: document.getElementById("pay")?.value || "Cash on delivery",
     };
 
     fetch(window.MM_ROUTES.checkoutStore, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": window.MM_CSRF },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Accept": "application/json", 
+        "X-CSRF-TOKEN": window.MM_CSRF 
+      },
       body: JSON.stringify(payload),
     })
     .then(r => r.json().then(data => ({ ok: r.ok, data })))
     .then(({ ok, data }) => {
-      if(!ok){ alert(data.message || "Could not place the order."); btn.disabled = false; btn.textContent = "Confirm Delivery"; return; }
+      if(!ok){ 
+        alert(data.message || "Could not place the order."); 
+        btn.disabled = false; 
+        btn.textContent = "Confirm Delivery"; 
+        return; 
+      }
 
-      const order = data.order;
-      document.getElementById("inv-number").textContent = order.number;
-      document.getElementById("inv-date").textContent = order.date;
-      document.getElementById("inv-mode").textContent = order.mode;
-      document.getElementById("inv-pay").textContent = order.pay;
-      document.getElementById("inv-body").innerHTML = order.items.map(i => `
-        <tr><td>${i.name}</td><td>${i.qty}</td><td>${money(i.price)}</td><td>${money(i.lineTotal)}</td></tr>
-      `).join("");
-      document.getElementById("inv-subtotal").textContent = money(order.subtotal);
-      document.getElementById("inv-delivery").textContent = money(order.delivery);
-      document.getElementById("inv-total").textContent = money(order.total);
+      // Populate Invoice UI Data
+      const orderId = data.order_id || data.order?.number || data.id || "1043";
+      document.getElementById("inv-number").textContent = orderId;
+      document.getElementById("inv-date").textContent = new Date().toLocaleString('en-US', { 
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true 
+      });
+      document.getElementById("inv-mode").textContent = payload.transport_type === 'truck' ? 'Truck' : 'Motorcycle';
+      document.getElementById("inv-pay").textContent = payload.payment_method;
+
+      // Render items table using floating quantities and salePrice
+      const subtotal = cartSubtotal();
+      const delivery = subtotal * (window.DELIVERY_RATE || 0.10);
+      const total = subtotal + delivery;
+
+      let itemsHtml = '';
+      lines.forEach(line => {
+        const qty = parseFloat(line.qty);
+        const price = line.product.salePrice ?? line.product.price;
+        itemsHtml += `
+          <tr>
+            <td>${line.product.name}</td>
+            <td>${qty} ${line.product.unit || ''}</td>
+            <td>${money(price)}</td>
+            <td>${money(price * qty)}</td>
+          </tr>
+        `;
+      });
+      
+      document.getElementById("inv-body").innerHTML = itemsHtml;
+      document.getElementById("inv-subtotal").textContent = money(subtotal);
+      document.getElementById("inv-delivery").textContent = money(delivery);
+      document.getElementById("inv-total").textContent = money(total);
+
+      // Set "Back to Home" URL to the Order Tracking view
+      const targetUrl = data.redirect_url || (`/orders/` + orderId);
+      document.getElementById("back-home-btn").href = targetUrl;
+
+      // Clear cart session and switch views
+      localStorage.removeItem("cart");
+      refreshCartCache();
 
       document.getElementById("checkout-section").style.display = "none";
+      if (document.querySelector(".page-head")) {
+        document.querySelector(".page-head").style.display = "none";
+      }
       document.getElementById("invoice-section").style.display = "block";
-      refreshCartCache();
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
+    })
+    .catch(err => {
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = "Confirm Delivery";
     });
   }
 </script>

@@ -71,4 +71,5 @@ class Order extends Model
             default => ucfirst($this->status),
         };
     }
+    
 }

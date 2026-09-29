@@ -12,4 +12,10 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    /** Absolute, ready-to-use <img src> — handles base64 uploads, full URLs, and plain public/ paths alike. */
+    public function getImageUrlAttribute(): string
+    {
+        return Product::resolveImageUrl($this->image);
+    }
 }

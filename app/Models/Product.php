@@ -63,6 +63,35 @@ class Product extends Model
         return $this->qty < $threshold;
     }
 
+    /**
+     * Turn whatever is stored in an `image` column into something an <img src>
+     * can use directly, whichever of these it happens to be:
+     *   - a base64 data URI  (data:image/...)   — from the admin photo-upload form
+     *   - a full external URL (http:// / https://)
+     *   - a plain path under public/ (Photo/Fruit/banana.jpg) — the seeded catalog
+     *   - empty/null — falls back to a placeholder graphic
+     */
+    public static function resolveImageUrl(?string $path): string
+    {
+        if (! $path) {
+            return asset('images/placeholder.jpg');
+        }
+
+        if (str_starts_with($path, 'data:')
+            || str_starts_with($path, 'http://')
+            || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return asset(ltrim($path, '/'));
+    }
+
+    /** Absolute, ready-to-use <img src> for this product. */
+    public function getImageUrlAttribute(): string
+    {
+        return static::resolveImageUrl($this->image);
+    }
+
     public function isExpired(): bool
     {
         return $this->expiry_date !== null && $this->expiry_date->copy()->endOfDay()->isPast();
@@ -94,7 +123,7 @@ class Product extends Model
             'unit' => $this->unit,
             'emoji' => $this->emoji,
             'qty' => $this->qty,
-            'img' => $this->image,
+            'img' => $this->image_url,
             'dateAdded' => optional($this->date_added)->format('Y-m-d'),
             'expiryDate' => optional($this->expiry_date)->format('Y-m-d'),
         ];

@@ -78,7 +78,7 @@
     grid.innerHTML = items.map(p => `
   <div class="product-card">
     <div class="product-media">
-      <img src="/${p.img}" alt="${p.name}">
+      <img src="${p.img}" alt="${p.name}">
       ${p.qty < 10 ? `<span class="stock-flag">Only ${p.qty} left</span>` : ""}
     </div>
     <div class="product-body">

@@ -429,4 +429,4 @@
 </script>
 </body>
 </html>
-<?php /**PATH E:\MINI-MART-SYSTEM\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>

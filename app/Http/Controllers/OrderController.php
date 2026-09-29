@@ -1,42 +1,56 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\DeliveryStaff;
+use App\Models\Category;
 use App\Models\Order;
-use Illuminate\Http\JsonResponse;
+use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function approve(Order $order): JsonResponse
+    public function index(Request $request): View
     {
-        $order->update(['status' => 'out']);
+        $user = $request->user();
+        $status = $request->query('status');
+        $categories = Category::orderBy('name')->get();
 
-        return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
-    }
+        // Fetch products for ordering directly on this page
+        $products = Product::where('status', 'active')->latest()->take(8)->get();
 
-    public function deliver(Order $order): JsonResponse
-    {
-        $order->update(['status' => 'done']);
+        $query = Order::with(['items.product', 'deliveryStaff']);
 
-        return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
-    }
+        if ($user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
 
-    public function assign(Request $request, Order $order): JsonResponse
-    {
-        $data = $request->validate(['staff_id' => 'nullable|exists:delivery_staff,id']);
+                if (!empty($user->phone)) {
+                    $q->orWhere('customer_phone', $user->phone);
+                }
 
-        $order->update(['delivery_staff_id' => $data['staff_id'] ?? null]);
+                if (!empty($user->email)) {
+                    $q->orWhere('customer_email', $user->email);
+                }
 
-        if ($data['staff_id'] ?? null) {
-            $staff = DeliveryStaff::find($data['staff_id']);
-            $order->update([
-                'transport_type' => str_contains(strtolower($staff->vehicle), 'moto') ? 'moto' : 'truck',
-            ]);
+                $q->orWhereNull('user_id');
+            });
         }
 
-        return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
+        if ($status && in_array($status, ['pending', 'out', 'done'])) {
+            $query->where('status', $status);
+        }
+
+        $orders = $query->orderBy('id', 'desc')->get();
+
+        return view('orders.index', compact('orders', 'categories', 'products'));
+    }
+
+    public function show($id, Request $request): View
+    {
+        $categories = Category::orderBy('name')->get();
+        $order = Order::with(['items.product', 'deliveryStaff'])->findOrFail($id);
+
+        return view('orders.show', compact('order', 'categories'));
     }
 }

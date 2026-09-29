@@ -35,7 +35,10 @@ return new class extends Migration
             $table->string('product_name');
             $table->string('unit')->nullable();
             $table->decimal('price', 8, 2);
-            $table->unsignedInteger('qty');
+            
+            // CHANGED: From unsignedInteger to decimal(8,2) to support 1.5, 0.5, etc.
+            $table->decimal('qty', 8, 2); 
+            
             $table->decimal('line_total', 10, 2);
             $table->timestamps();
         });

@@ -40,7 +40,7 @@
       <div class="cat-grid8" id="cat-grid8">
         <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $cat): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
           <a href="<?php echo e(route('products.index')); ?>?cat=<?php echo e(urlencode($cat->name)); ?>" class="cat-card">
-            <div class="cat-photo"><img src="<?php echo e(asset($cat->image)); ?>" alt="<?php echo e($cat->name); ?>"></div>
+            <div class="cat-photo"><img src="<?php echo e($cat->image_url); ?>" alt="<?php echo e($cat->name); ?>"></div>
             <span class="cat-name"><?php echo e($cat->name); ?></span>
           </a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -93,7 +93,7 @@
         <?php ($pct = $dealPct[$id]); ?>
         <?php ($was = $p->price / (1 - $pct / 100)); ?>
         <div class="deal-card">
-          <div class="deal-media"><img src="<?php echo e(asset($p->image)); ?>" alt="<?php echo e($p->name); ?>"><span class="deal-off"><?php echo e($pct); ?>% OFF</span></div>
+          <div class="deal-media"><img src="<?php echo e($p->image_url); ?>" alt="<?php echo e($p->name); ?>"><span class="deal-off"><?php echo e($pct); ?>% OFF</span></div>
           <div class="deal-body">
             <div class="deal-name"><?php echo e($p->name); ?></div>
             <div class="deal-unit"><?php echo e($p->unit); ?></div>
@@ -116,7 +116,7 @@
       <?php $__currentLoopData = $newArrivals; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="product-card">
           <div class="product-media">
-            <img src="<?php echo e(asset($p->image)); ?>" alt="<?php echo e($p->name); ?>">
+            <img src="<?php echo e($p->image_url); ?>" alt="<?php echo e($p->name); ?>">
             <span class="new-flag">NEW</span>
           </div>
           <div class="product-body">
@@ -210,4 +210,4 @@
 </script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/home/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/home/index.blade.php ENDPATH**/ ?>

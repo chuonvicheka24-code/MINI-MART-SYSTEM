@@ -514,7 +514,7 @@ function renderInventory(){
     return `
     <tr>
       <td>#${i+1}</td>
-      <td><img class="row-thumb" src="/${p.img}" alt=""> ${p.name}${p.discountPercent ? ` <span class="status low" style="margin-left:4px;">-${p.discountPercent}%</span>` : ""}</td>
+      <td><img class="row-thumb" src="${p.img}" alt=""> ${p.name}${p.discountPercent ? ` <span class="status low" style="margin-left:4px;">-${p.discountPercent}%</span>` : ""}</td>
       <td>${p.cat}</td>
       <td>${p.unit || "each"}</td>
       <td>${p.qty}</td>

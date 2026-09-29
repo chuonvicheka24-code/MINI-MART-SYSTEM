@@ -67,11 +67,32 @@ function setCartQty(id, qty){
 function removeFromCart(id){ return setCartQty(id, 0); }
 
 /** Cart lines merged with product info — needs window.MM_PRODUCTS on the page. */
+/** Cart lines merged with product info — fallback directly to session item details */
 function cartLines(){
   const products = window.MM_PRODUCTS || [];
-  return (_cartCache.lines || [])
-    .map(l => ({ ...l, product: products.find(p => p.id === l.id) }))
-    .filter(l => l.product);
+  const lines = _cartCache.lines || [];
+
+  return lines.map(l => {
+    // 1. Try matching with window.MM_PRODUCTS
+    const found = products.find(p => String(p.id) === String(l.id));
+
+    // 2. If product found, use it
+    if (found) {
+      return { ...l, product: found };
+    }
+
+    // 3. Fallback: construct product object directly from item session data
+    return {
+      ...l,
+      product: {
+        id: l.id,
+        name: l.name || l.title || ('Product #' + l.id),
+        salePrice: parseFloat(l.price || l.salePrice || 0),
+        unit: l.unit || 'item',
+        img: l.img || l.image || 'images/placeholder.jpg'
+      }
+    };
+  });
 }
 function cartSubtotal(){ return _cartCache.subtotal || 0; }
 function cartCount(){ return _cartCache.count || 0; }

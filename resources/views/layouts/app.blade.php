@@ -141,6 +141,9 @@
   window.MM_CATEGORIES = @json($categories->pluck('name'));
   window.MM_CATEGORY_ICONS = @json($categories->pluck('icon', 'name'));
   window.MM_CATEGORY_IMAGES = @json($categories->pluck('image', 'name'));
+  
+  // Inject global products if passed from controller/ViewShare
+  window.MM_PRODUCTS = @json(isset($products) ? $products->map->toStorefrontArray() : []);
 </script>
 <script src="{{ asset('js/app.js') }}"></script>
 @stack('scripts')

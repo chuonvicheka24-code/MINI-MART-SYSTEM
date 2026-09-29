@@ -42,7 +42,7 @@
       <div class="cat-grid8" id="cat-grid8">
         @foreach ($categories as $cat)
           <a href="{{ route('products.index') }}?cat={{ urlencode($cat->name) }}" class="cat-card">
-            <div class="cat-photo"><img src="{{ asset($cat->image) }}" alt="{{ $cat->name }}"></div>
+            <div class="cat-photo"><img src="{{ $cat->image_url }}" alt="{{ $cat->name }}"></div>
             <span class="cat-name">{{ $cat->name }}</span>
           </a>
         @endforeach
@@ -95,7 +95,7 @@
         @php($pct = $dealPct[$id])
         @php($was = $p->price / (1 - $pct / 100))
         <div class="deal-card">
-          <div class="deal-media"><img src="{{ asset($p->image) }}" alt="{{ $p->name }}"><span class="deal-off">{{ $pct }}% OFF</span></div>
+          <div class="deal-media"><img src="{{ $p->image_url }}" alt="{{ $p->name }}"><span class="deal-off">{{ $pct }}% OFF</span></div>
           <div class="deal-body">
             <div class="deal-name">{{ $p->name }}</div>
             <div class="deal-unit">{{ $p->unit }}</div>
@@ -118,7 +118,7 @@
       @foreach ($newArrivals as $p)
         <div class="product-card">
           <div class="product-media">
-            <img src="{{ asset($p->image) }}" alt="{{ $p->name }}">
+            <img src="{{ $p->image_url }}" alt="{{ $p->name }}">
             <span class="new-flag">NEW</span>
           </div>
           <div class="product-body">

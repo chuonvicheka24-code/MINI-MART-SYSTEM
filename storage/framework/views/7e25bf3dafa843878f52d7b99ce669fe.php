@@ -76,7 +76,7 @@
     grid.innerHTML = items.map(p => `
   <div class="product-card">
     <div class="product-media">
-      <img src="/${p.img}" alt="${p.name}">
+      <img src="${p.img}" alt="${p.name}">
       ${p.qty < 10 ? `<span class="stock-flag">Only ${p.qty} left</span>` : ""}
     </div>
     <div class="product-body">
@@ -110,4 +110,4 @@
   render();
 </script>
 <?php $__env->stopPush(); ?>
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/products/index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/products/index.blade.php ENDPATH**/ ?>
