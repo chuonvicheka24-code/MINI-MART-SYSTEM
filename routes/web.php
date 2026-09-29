@@ -27,8 +27,11 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
-Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
-Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
+// Order history is personal data — requires login, same as checkout.
+Route::middleware('auth')->group(function () {
+    Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
+});
 
 
 /*
@@ -42,8 +45,12 @@ Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/set', [CartController::class, 'set'])->name('cart.set');
 Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 
-Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+// Checkout requires a signed-in account — guests get sent to /login and are
+// bounced right back here afterward (Laravel's intended-URL redirect).
+Route::middleware('auth')->group(function () {
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+});
 
 /*
 |--------------------------------------------------------------------------

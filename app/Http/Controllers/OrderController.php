@@ -12,30 +12,27 @@ class OrderController extends Controller
 {
     public function index(Request $request): View
     {
-        $user = $request->user();
+        $user = $request->user(); // guaranteed non-null — this route requires 'auth'
         $status = $request->query('status');
         $categories = Category::orderBy('name')->get();
 
-        // Fetch products for ordering directly on this page
-        $products = Product::where('status', 'active')->latest()->take(8)->get();
+        // Fetch a few products to browse while looking at order history.
+        $products = Product::latest()->take(8)->get();
 
-        $query = Order::with(['items.product', 'deliveryStaff']);
-
-        if ($user) {
-            $query->where(function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-
-                if (!empty($user->phone)) {
-                    $q->orWhere('customer_phone', $user->phone);
-                }
-
-                if (!empty($user->email)) {
-                    $q->orWhere('customer_email', $user->email);
-                }
-
-                $q->orWhereNull('user_id');
+        $query = Order::with(['items.product', 'deliveryStaff'])
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    // Legacy guest checkouts (placed before login was required)
+                    // only count as "theirs" if the contact info actually matches —
+                    // never show every guest order to every customer.
+                    ->orWhere(function ($q2) use ($user) {
+                        $q2->whereNull('user_id')
+                            ->where(function ($q3) use ($user) {
+                                $q3->where('customer_email', $user->email)
+                                    ->orWhere('customer_phone', $user->phone);
+                            });
+                    });
             });
-        }
 
         if ($status && in_array($status, ['pending', 'out', 'done'])) {
             $query->where('status', $status);
@@ -48,8 +45,18 @@ class OrderController extends Controller
 
     public function show($id, Request $request): View
     {
+        $user = $request->user(); // guaranteed non-null — this route requires 'auth'
         $categories = Category::orderBy('name')->get();
+
         $order = Order::with(['items.product', 'deliveryStaff'])->findOrFail($id);
+
+        $ownsOrder = $order->user_id === $user->id
+            || ($order->user_id === null && (
+                $order->customer_email === $user->email
+                || $order->customer_phone === $user->phone
+            ));
+
+        abort_unless($ownsOrder || $user->isAdmin(), 403, "You don't have access to this order.");
 
         return view('orders.show', compact('order', 'categories'));
     }

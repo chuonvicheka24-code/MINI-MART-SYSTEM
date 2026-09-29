@@ -22,17 +22,23 @@ class CartController extends Controller
             $pastOrders = Order::with(['items.product'])
                 ->where(function ($q) use ($user) {
                     $q->where('user_id', $user->id)
-                      ->orWhere('customer_email', $user->email)
-                      ->orWhere('customer_phone', $user->phone)
-                      ->orWhereNull('user_id');
+                        // Legacy guest checkouts only count as "theirs" if the
+                        // contact info actually matches — never show every
+                        // guest order to every logged-in customer.
+                        ->orWhere(function ($q2) use ($user) {
+                            $q2->whereNull('user_id')
+                                ->where(function ($q3) use ($user) {
+                                    $q3->where('customer_email', $user->email)
+                                        ->orWhere('customer_phone', $user->phone);
+                                });
+                        });
                 })
                 ->orderBy('id', 'desc')
                 ->get();
         } else {
-            $pastOrders = Order::with(['items.product'])
-                ->whereNull('user_id')
-                ->orderBy('id', 'desc')
-                ->get();
+            // Guests have no way to prove which past orders are theirs —
+            // show none rather than leaking every anonymous order in the store.
+            $pastOrders = collect();
         }
 
         return view('cart.index', compact('categories', 'products', 'pastOrders'));

@@ -224,20 +224,7 @@
                     $lineTotal = $itemPrice * $itemQty;
                     $itemUnit = $item->unit ?? $item->product->unit ?? '';
 
-                    $img = $item->product->image ?? $item->image ?? null;
-                    if ($img) {
-                        if (\Illuminate\Support\Str::startsWith($img, ['http://', 'https://'])) {
-                            $imgSrc = $img;
-                        } elseif (\Illuminate\Support\Str::startsWith($img, 'storage/') || \Illuminate\Support\Str::startsWith($img, '/storage/')) {
-                            $imgSrc = asset($img);
-                        } elseif (\Illuminate\Support\Str::startsWith($img, 'Photo/')) {
-                            $imgSrc = asset($img);
-                        } else {
-                            $imgSrc = asset('storage/' . ltrim($img, '/'));
-                        }
-                    } else {
-                        $imgSrc = null;
-                    }
+                    $imgSrc = $item->product->image_url ?? null;
                 ?>
                 <div class="item-row">
                     <div class="item-info">

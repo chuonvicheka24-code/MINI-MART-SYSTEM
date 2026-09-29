@@ -14,7 +14,7 @@
 
     <div class="card">
       <div class="field-row">
-        <div class="field"><label for="truck-number">Truck number</label><input id="truck-number" value="PP-1234"></div>
+         <div class="field"><label for="truck-number">Truck number</label><input id="truck-number" placeholder="e.g. PP-1234"></div>
         <div class="field"><label for="location">Select location</label>
           <select id="location">
             <option>Phnom Penh</option><option>Siem Reap</option><option>Battambang</option><option>Sihanoukville</option>

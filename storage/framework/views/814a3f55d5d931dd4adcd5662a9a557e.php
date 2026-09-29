@@ -180,9 +180,17 @@
           <strong id="sum-total" style="color:#1b4d3e;">$0.00</strong>
         </div>
 
-        <a href="<?php echo e(route('checkout.index')); ?>" id="checkout-btn" class="btn-checkout" style="display:block; width:100%; text-align:center; background:#1b4d3e; color:#fff; padding:12px; border-radius:8px; font-weight:700; text-decoration:none;">
-          Confirm & Proceed to Delivery
-        </a>
+        <?php if(auth()->guard()->check()): ?>
+          <!-- Logged-in Customer -->
+          <a href="<?php echo e(route('checkout.index')); ?>" id="checkout-btn" class="btn-checkout" style="display:block; width:100%; text-align:center; background:#1b4d3e; color:#fff; padding:12px; border-radius:8px; font-weight:700; text-decoration:none;">
+            Confirm & Proceed to Delivery
+          </a>
+        <?php else: ?>
+          <!-- Guest Customer (Requires Login) -->
+          <a href="<?php echo e(route('login')); ?>" id="checkout-btn" class="btn-checkout" style="display:block; width:100%; text-align:center; background:#d97706; color:#fff; padding:12px; border-radius:8px; font-weight:700; text-decoration:none;">
+            <i class="fa-solid fa-right-to-bracket" style="margin-right:6px;"></i> Login to Place Order
+          </a>
+        <?php endif; ?>
         
         <p class="form-note" style="margin-top:12px; font-size:12px; color:var(--muted); text-align:center;">
           Delivery fee is calculated as 10% of total cost and confirmed again at checkout.
@@ -195,61 +203,60 @@
       <h2 class="history-title"><i class="fa-solid fa-clock-rotate-left" style="color: #e11d48; margin-right: 8px;"></i>Past Order History</h2>
 
       <?php if(isset($pastOrders) && $pastOrders->count() > 0): ?>
-          <?php $__currentLoopData = $pastOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $o): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-              <?php
-                  $statusText = match($o->status) {
-                      'done' => 'Completed',
-                      'out' => 'In Progress',
-                      default => 'Pending',
-                  };
-              ?>
+        <?php $__currentLoopData = $pastOrders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $o): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+          <?php
+            $statusText = match($o->status) {
+              'done' => 'Completed',
+              'out' => 'In Progress',
+              default => 'Pending',
+            };
+          ?>
 
-              <div class="history-order-card">
-                  <div class="history-card-header">
-                      <div class="history-store-title">
-                          <div class="history-store-icon"><i class="fa-solid fa-store"></i></div>
-                          Mini Mart Store
-                          <i class="fa-solid fa-chevron-right" style="font-size: 11px; color: #9ca3af;"></i>
-                      </div>
-                      <span class="history-status-badge status-<?php echo e($o->status); ?>">
-                          <?php echo e($statusText); ?>
-
-                      </span>
-                  </div>
-
-                  <div class="history-items-row">
-                      <?php $__currentLoopData = $o->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                          <?php
-                              $img = $item->product->image ?? 'images/placeholder.jpg';
-                              $imgUrl = \Illuminate\Support\Str::startsWith($img, ['http://', 'https://']) 
-                                  ? $img 
-                                  : asset($img);
-                          ?>
-                          <div class="history-item-box">
-                              <img src="<?php echo e($imgUrl); ?>" class="history-item-img" alt="<?php echo e($item->product_name ?? 'Product'); ?>" onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=Item';">
-                              <div class="history-item-name"><?php echo e($item->product_name ?? ($item->product->name ?? 'Item')); ?></div>
-                          </div>
-                      <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                  </div>
-
-                  <div class="history-card-footer">
-                      <div class="history-meta">
-                          <?php echo e($o->placed_at ? $o->placed_at->format('d/m/Y H:i') : ($o->created_at ? $o->created_at->format('d/m/Y H:i') : '')); ?>
-
-                          <span style="margin-left: 10px;">Total: <strong style="color: #111827;">$<?php echo e(number_format($o->total, 2)); ?></strong></span>
-                      </div>
-
-                      <a href="<?php echo e(route('orders.show', $o->id)); ?>" class="btn-history-detail">
-                          View Order Details
-                      </a>
-                  </div>
+          <div class="history-order-card">
+            <div class="history-card-header">
+              <div class="history-store-title">
+                <div class="history-store-icon"><i class="fa-solid fa-store"></i></div>
+                Mini Mart Store
+                <i class="fa-solid fa-chevron-right" style="font-size: 11px; color: #9ca3af;"></i>
               </div>
-          <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-      <?php else: ?>
-          <div style="text-align: center; padding: 40px 0; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;">
-              <i class="fa-solid fa-receipt" style="font-size: 36px; color: #9ca3af; margin-bottom: 10px;"></i>
-              <p style="color: #6b7280; font-size: 14px; margin: 0;">No past orders found in your history.</p>
+              <span class="history-status-badge status-<?php echo e($o->status); ?>">
+                <?php echo e($statusText); ?>
+
+              </span>
+            </div>
+
+            <div class="history-items-row">
+              <?php $__currentLoopData = $o->items; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <?php
+                  // ->image_url resolves data: URIs, full URLs, and plain public/ paths
+                  // all correctly — see App\Models\Product::resolveImageUrl().
+                  $imgUrl = $item->product?->image_url ?? asset('images/placeholder.jpg');
+                ?>
+                <div class="history-item-box">
+                  <img src="<?php echo e($imgUrl); ?>" class="history-item-img" alt="<?php echo e($item->product_name ?? 'Product'); ?>" onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=Item';">
+                  <div class="history-item-name"><?php echo e($item->product_name ?? ($item->product->name ?? 'Item')); ?></div>
+                </div>
+              <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </div>
+
+            <div class="history-card-footer">
+              <div class="history-meta">
+                <?php echo e($o->placed_at ? $o->placed_at->format('d/m/Y H:i') : ($o->created_at ? $o->created_at->format('d/m/Y H:i') : '')); ?>
+
+                <span style="margin-left: 10px;">Total: <strong style="color: #111827;">$<?php echo e(number_format($o->total, 2)); ?></strong></span>
+              </div>
+
+              <a href="<?php echo e(route('orders.show', $o->id)); ?>" class="btn-history-detail">
+                View Order Details
+              </a>
+            </div>
           </div>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+      <?php else: ?>
+        <div style="text-align: center; padding: 40px 0; background: #fff; border-radius: 12px; border: 1px solid #e5e7eb;">
+          <i class="fa-solid fa-receipt" style="font-size: 36px; color: #9ca3af; margin-bottom: 10px;"></i>
+          <p style="color: #6b7280; font-size: 14px; margin: 0;">No past orders found in your history.</p>
+        </div>
       <?php endif; ?>
     </div>
 
@@ -263,10 +270,7 @@
   window.MM_PRODUCTS = <?php echo json_encode(\App\Models\Product::all()->map->toStorefrontArray(), 15, 512) ?>;
 
   function renderCart(){
-    // Safety check to ensure cartLines is available
     const rawLines = (typeof cartLines === 'function') ? cartLines() : [];
-    
-    // Filter out invalid or missing items so JS map doesn't fail
     const lines = rawLines.filter(l => l && (l.product || l.product_id));
 
     const body = document.getElementById("order-body");
@@ -281,7 +285,6 @@
     if (!lines.length) return;
 
     body.innerHTML = lines.map(l => {
-      // Fallback product data if product record was newly updated
       const p = l.product || {
         name: 'Item #' + l.id,
         salePrice: l.price || 0,
@@ -289,7 +292,9 @@
         img: 'images/placeholder.jpg'
       };
 
-      const imgSrc = p.img ? (p.img.startsWith('http') ? p.img : '/' + p.img) : 'https://placehold.co/50x50?text=Item';
+      // p.img is already a fully-resolved URL from Product::toStorefrontArray()
+      // (handles data: URIs, full URLs, and plain public/ paths) — no prefixing needed.
+      const imgSrc = p.img || 'https://placehold.co/50x50?text=Item';
       const lineTotal = (p.salePrice || 0) * (l.qty || 1);
 
       return `
@@ -354,7 +359,6 @@
     setCartQty(id, parseFloat(newQty.toFixed(2))).then(renderCart);
   }
 
-  // Refresh cart cache and render
   if (typeof refreshCartCache === 'function') {
     refreshCartCache().then(renderCart);
   } else {
@@ -362,4 +366,5 @@
   }
 </script>
 <?php $__env->stopPush(); ?>
+
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/cart/index.blade.php ENDPATH**/ ?>

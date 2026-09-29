@@ -14,6 +14,9 @@ use Illuminate\View\View;
 
 class CheckoutController extends Controller
 {
+    /**
+     * Enforce authentication for all checkout actions.
+     */
     public function index(): View
     {
         $categories = Category::orderBy('name')->get();
@@ -44,13 +47,13 @@ class CheckoutController extends Controller
         }
 
         $settings = Setting::current();
-        $user = $request->user();
+        $user = $request->user(); // Guaranteed authenticated via middleware
 
         $order = DB::transaction(function () use ($cart, $products, $data, $settings, $user) {
             $subtotal = 0;
             foreach ($cart as $id => $qty) {
                 if ($product = $products->get($id)) {
-                    // Force float to ensure 1.5kg calculates correctly
+                    // Force float to ensure decimal quantities (e.g., 1.5kg) calculate correctly
                     $floatQty = (float) $qty;
                     $subtotal += $product->sale_price * $floatQty;
                 }
@@ -58,10 +61,10 @@ class CheckoutController extends Controller
             $deliveryFee = round($subtotal * ($settings->delivery_rate / 100), 2);
 
             $order = Order::create([
-                'user_id' => $user?->id,
-                'customer_name' => $user?->name ?? 'Guest customer',
-                'customer_email' => $data['email'] ?? $user?->email,
-                'customer_phone' => $data['phone'] ?? $user?->phone,
+                'user_id' => $user->id,
+                'customer_name' => $user->name,
+                'customer_email' => $data['email'] ?? $user->email,
+                'customer_phone' => $data['phone'] ?? $user->phone,
                 'location' => $data['location'] ?? null,
                 'address' => $data['address'] ?? null,
                 'truck_number' => $data['transport_type'] === 'truck' ? ($data['truck_number'] ?? null) : null,
@@ -80,7 +83,7 @@ class CheckoutController extends Controller
                     continue;
                 }
 
-                $floatQty = (float) $qty; // Explicit float conversion
+                $floatQty = (float) $qty;
 
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -88,7 +91,7 @@ class CheckoutController extends Controller
                     'product_name' => $product->name,
                     'unit' => $product->unit,
                     'price' => $product->sale_price,
-                    'qty' => $floatQty, // Saved as float decimal
+                    'qty' => $floatQty,
                     'line_total' => round($product->sale_price * $floatQty, 2),
                 ]);
 

@@ -43,9 +43,10 @@ class LoginController extends Controller
             session([CartController::SESSION_KEY => $guestCart]);
         }
 
+        // 4. Redirect admins to dashboard, and regular customers to intended checkout page
         return Auth::user()->isAdmin()
             ? redirect()->intended(route('admin.index'))
-            : redirect()->intended(route('home'));
+            : redirect()->intended(route('checkout.index'));
     }
 
     public function destroy(Request $request): RedirectResponse
