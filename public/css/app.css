@@ -272,6 +272,11 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 .admin-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:22px; align-items:flex-start; }
 .chart-box{ position:relative; height:240px; }
 .chart-box-wide{ height:280px; }
+.chart-box svg{ display:block; }
+.chart-box .bar{ transition: opacity .15s; }
+.chart-box g:hover .bar{ opacity:.82; }
+.bar-empty{ height:100%; display:flex; align-items:center; justify-content:center; color: var(--muted); font-size:14px; }
+
 .panel-card{ background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; margin-bottom:22px; }
 .panel-card h3{ margin-bottom: 12px; font-size:16px; }
 .low-list li{ padding: 9px 0; border-bottom: 1px solid var(--line); font-size:14px; display:flex; align-items:center; gap:8px; }
@@ -468,3 +473,18 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
   .cat-card .cat-photo{ width:92px; height:92px; }
   .head-actions{ gap:14px; }
 }
+
+/* --- report charts --- */
+.chart-box-h{ height:auto; min-height:240px; }
+.chart-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.chart-head h3{ margin:0 0 2px; }
+.chart-sub{ margin:0; font-size:12.5px; color: var(--muted); }
+.chart-tools{ display:flex; gap:8px; align-items:center; }
+.chart-select{ border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:7px 10px; font:inherit; font-size:13px; color: var(--ink); }
+.chart-legend{ display:flex; gap:14px; font-size:12px; color: var(--muted); margin-bottom:6px; }
+.chart-legend .dot{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+.dot-red{ background:#D8342A; } .dot-green{ background:#3FBF63; }
+.chart-tip{ position:fixed; z-index:9999; pointer-events:none; opacity:0; transition:opacity .12s; background:#16261A; color:#fff; font-size:12px; line-height:1.4; padding:7px 10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.2); }
+.chart-box svg text{ pointer-events:none; }
+.chart-box .dotpt{ transition: r .12s; }
+.chart-box g:hover .dotpt{ r:8; }

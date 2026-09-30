@@ -49,9 +49,6 @@ function showPanel(name){
   };
   document.getElementById("panel-title").textContent = titles[name];
   renderAll();
-  if(name === "reports" && typeof Chart !== "undefined"){
-    [chartRevenue, chartStatus, chartCategory].forEach(c => c && c.resize());
-  }
   window.scrollTo(0,0);
 }
 
@@ -753,71 +750,254 @@ function renderReports(){
   document.getElementById("report-delivered").textContent = delivered;
   document.getElementById("report-avg").textContent = money(avg);
 
-  if(typeof Chart === "undefined") return; // CDN blocked / offline — KPIs above still work
   renderChartRevenue();
-  renderChartStatus();
   renderChartCategory();
+  renderChartPO();
 }
 
-let chartRevenue, chartStatus, chartCategory;
-const CHART_GREEN = "#80EF80", CHART_DARK = "#1E5C34", CHART_WARN = "#F5A623";
+/* ---------- Charts (dependency-free SVG) ---------- */
+const GRADS = { green:["#9BF59B","#3FBF63"], red:["#FF9B92","#D8342A"], dark:["#4FA874","#1E5C34"] };
+let reportMonth = "all";
+
+function chartDefs(id){
+  return "<defs>" + Object.entries(GRADS).map(([k,[a,b]]) =>
+    `<linearGradient id="${id}-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join("") + "</defs>";
+}
+function niceMax(v){
+  const step = Math.pow(10, Math.floor(Math.log10(Math.max(v,1))));
+  const n = v / step, f = [1,1.2,1.5,2,2.5,3,4,5,6,8,10].find(x => n <= x + 1e-9);
+  return f * step;
+}
+const shorten = (t, n) => t.length > n ? t.slice(0, n - 1) + "…" : t;
+function bindTip(el, onClick){
+  let tip = document.getElementById("chart-tip");
+  if(!tip){ tip = document.createElement("div"); tip.id = "chart-tip"; tip.className = "chart-tip"; document.body.appendChild(tip); }
+  el.onmousemove = e => {
+    const t = e.target.closest("[data-tip]");
+    if(!t){ tip.style.opacity = 0; return; }
+    tip.innerHTML = t.dataset.tip; tip.style.opacity = 1;
+    tip.style.left = (e.clientX + 14) + "px"; tip.style.top = (e.clientY - 12) + "px";
+  };
+  el.onmouseleave = () => { tip.style.opacity = 0; };
+  el.onclick = onClick ? (e => { const t = e.target.closest("[data-key]"); if(t) onClick(t.dataset.key); }) : null;
+}
+
+/* vertical bars */
+function drawBarChart(elId, items, opts = {}){
+  const el = document.getElementById(elId); if(!el) return;
+  if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
+  const W = Math.max(el.clientWidth, 300), H = el.clientHeight || 240;
+  const m = { t:26, r:10, b:34, l:opts.left || 48 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const fmt = opts.format || (v => v);
+  const rawMax = Math.max(...items.map(i => i.value), 1);
+  const fixed = opts.minMax && rawMax <= opts.minMax;          // e.g. always show $0 - $1,000
+  const ticks = fixed ? 5 : 4;
+  const max = fixed ? opts.minMax : niceMax(rawMax);
+  const slot = iw / items.length, bw = Math.min(slot * 0.6, opts.maxBar || 46);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${opts.label || "Bar chart"}">${chartDefs(elId)}`;
+  for(let i = 0; i <= ticks; i++){
+    const v = max * i / ticks, y = m.t + ih - (v / max) * ih;
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="#E3F1E5" ${i ? 'stroke-dasharray="4 5"' : ""}/>`;
+    svg += `<text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#8A9B8E">${fmt(+v.toFixed(2))}</text>`;
+  }
+  items.forEach((it, i) => {
+    const h = Math.max((it.value / max) * ih, it.value > 0 ? 3 : 0);
+    const x = m.l + slot * i + (slot - bw) / 2, y = m.t + ih - h, cx = x + bw / 2;
+    const dim = opts.selected && opts.selected !== "all" && opts.selected !== it.key ? 0.35 : 1;
+    svg += `<g data-key="${it.key}" data-tip="<b>${it.tip || it.label}</b><br>${fmt(it.value)}" style="cursor:${opts.onClick ? "pointer" : "default"}" opacity="${dim}">
+      <rect x="${x}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>
+      <rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="7" fill="url(#${elId}-${it.color || opts.color || "green"})"/></g>`;
+    if(it.value > 0) svg += `<text x="${cx}" y="${y - 7}" text-anchor="middle" font-size="11" font-weight="700" fill="#1E5C34" opacity="${dim}">${fmt(it.value)}</text>`;
+    svg += `<text x="${cx}" y="${H - m.b + 18}" text-anchor="middle" font-size="11" fill="#66786B">${shorten(it.label, opts.labelMax || 10)}</text>`;
+  });
+  el.innerHTML = svg + "</svg>";
+  bindTip(el, opts.onClick);
+}
+
+/* line chart (area + points) */
+function drawLineChart(elId, items, opts = {}){
+  const el = document.getElementById(elId); if(!el) return;
+  if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
+  const W = Math.max(el.clientWidth, 300), H = el.clientHeight || 240;
+  const m = { t:28, r:28, b:34, l:52 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const fmt = opts.format || (v => v);
+  const max = niceMax(Math.max(...items.map(i => i.value), 1));
+  const px = i => items.length === 1 ? m.l + iw / 2 : m.l + iw * i / (items.length - 1);
+  const py = v => m.t + ih - (v / max) * ih;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${opts.label || "Line chart"}"><defs><linearGradient id="${elId}-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3FBF63" stop-opacity=".35"/><stop offset="1" stop-color="#3FBF63" stop-opacity="0"/></linearGradient></defs>`;
+  for(let i = 0; i <= 4; i++){
+    const v = max * i / 4, y = py(v);
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="#E3F1E5" ${i ? 'stroke-dasharray="4 5"' : ""}/>`;
+    svg += `<text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#8A9B8E">${fmt(+v.toFixed(2))}</text>`;
+  }
+  const pts = items.map((it, i) => [px(i), py(it.value)]);
+  if(items.length > 1){
+    svg += `<path d="M${pts[0][0]},${m.t + ih} ${pts.map(p => "L" + p[0] + "," + p[1]).join(" ")} L${pts[pts.length-1][0]},${m.t + ih} Z" fill="url(#${elId}-area)"/>`;
+    svg += `<polyline points="${pts.map(p => p.join(",")).join(" ")}" fill="none" stroke="#1E8E45" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  items.forEach((it, i) => {
+    const [x, y] = pts[i], sel = opts.selected === it.key;
+    svg += `<g data-key="${it.key}" data-tip="<b>${it.tip || it.label}</b><br>${fmt(it.value)}" style="cursor:${opts.onClick ? "pointer" : "default"}">
+      <rect x="${x - 22}" y="${m.t}" width="44" height="${ih}" fill="transparent"/>
+      <circle class="dotpt" cx="${x}" cy="${y}" r="${sel ? 8 : 5.5}" fill="#fff" stroke="${sel ? "#16261A" : "#1E8E45"}" stroke-width="3"/></g>`;
+    svg += `<text x="${x}" y="${y - 13}" text-anchor="middle" font-size="11" font-weight="700" fill="#1E5C34">${fmt(it.value)}</text>`;
+    svg += `<text x="${x}" y="${H - m.b + 18}" text-anchor="middle" font-size="11" fill="#66786B">${it.label}</text>`;
+  });
+  el.innerHTML = svg + "</svg>";
+  bindTip(el, opts.onClick);
+}
+
+/* horizontal bars, with an optional threshold line */
+function drawHBarChart(elId, items, opts = {}){
+  const el = document.getElementById(elId); if(!el) return;
+  if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
+  const W = Math.max(el.clientWidth, 260), rowH = 26;
+  const m = { t:8, r:56, b:22, l:92 }, H = items.length * rowH + m.t + m.b, iw = W - m.l - m.r;
+  const fmt = opts.format || (v => v);
+  const max = niceMax(Math.max(...items.map(i => i.value), opts.threshold || 1, 1) * 1.05);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${opts.label || "Bar chart"}">${chartDefs(elId)}`;
+  for(let i = 0; i <= 4; i++){
+    const x = m.l + iw * i / 4;
+    svg += `<line x1="${x}" x2="${x}" y1="${m.t}" y2="${H - m.b}" stroke="#E3F1E5" ${i ? 'stroke-dasharray="4 5"' : ""}/>`;
+    svg += `<text x="${x}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="#8A9B8E">${fmt(+(max * i / 4).toFixed(0))}</text>`;
+  }
+  if(opts.threshold){
+    const tx = m.l + (opts.threshold / max) * iw;
+    svg += `<line x1="${tx}" x2="${tx}" y1="${m.t}" y2="${H - m.b}" stroke="#16261A" stroke-width="1.3" stroke-dasharray="5 4"/>`;
+  }
+  items.forEach((it, i) => {
+    const y = m.t + i * rowH + 4, bh = rowH - 9, w = Math.max((it.value / max) * iw, it.value > 0 ? 3 : 0);
+    svg += `<g data-tip="<b>${it.tip || it.label}</b><br>${fmt(it.value)}">
+      <rect x="${m.l}" y="${y - 3}" width="${iw + m.r - 6}" height="${rowH - 3}" fill="transparent"/>
+      <text x="${m.l - 8}" y="${y + bh / 2 + 4}" text-anchor="end" font-size="11.5" fill="#33473A">${shorten(it.label, 13)}</text>
+      <rect class="bar" x="${m.l}" y="${y}" width="${w}" height="${bh}" rx="6" fill="url(#${elId}-${it.color || "dark"})"/>
+      <text x="${m.l + w + 6}" y="${y + bh / 2 + 4}" font-size="11" font-weight="700" fill="#1E5C34">${fmt(it.value)}</text></g>`;
+  });
+  el.innerHTML = svg + "</svg>";
+  bindTip(el);
+}
+
+/* ---- data helpers ---- */
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function monthKey(iso){
+  const d = iso ? new Date(iso) : null;
+  return d && !isNaN(d) ? d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") : "unknown";
+}
+function monthLabel(k){
+  if(k === "unknown") return "No date";
+  const [y, mo] = k.split("-"); return MONTHS[+mo - 1] + " " + y;
+}
+function salesByMonth(){
+  const map = {};
+  orders.forEach(o => { const k = monthKey(o.placedAt); (map[k] = map[k] || { key:k, value:0, count:0, done:0 }); map[k].value += o.total; map[k].count++; if(o.status === "done") map[k].done++; });
+  return Object.values(map).sort((a, b) => a.key.localeCompare(b.key));
+}
 
 function renderChartRevenue(){
-  const canvas = document.getElementById("chart-revenue");
-  if(!canvas) return;
-  const labels = orders.map(o => "#" + o.id);
-  const data = orders.map(o => +o.total.toFixed(2));
-  if(chartRevenue){
-    chartRevenue.data.labels = labels;
-    chartRevenue.data.datasets[0].data = data;
-    chartRevenue.update();
-    return;
+  const months = salesByMonth();
+  const sel = document.getElementById("report-month");
+  if(sel){
+    if(reportMonth !== "all" && !months.some(m => m.key === reportMonth)) reportMonth = "all";
+    sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m.key}">${monthLabel(m.key)}</option>`).join("");
+    sel.value = reportMonth;
   }
-  chartRevenue = new Chart(canvas, {
-    type: "bar",
-    data: { labels, datasets: [{ label:"Order total ($)", data, backgroundColor: CHART_GREEN, borderRadius:6, maxBarThickness:36 }] },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
-  });
+  drawLineChart("chart-revenue",
+    months.map(m => ({ key:m.key, label:monthLabel(m.key), value:+m.value.toFixed(2), tip:`${monthLabel(m.key)} · ${m.count} invoice${m.count === 1 ? "" : "s"}` })),
+    { format:v => "$" + v, label:"Sales by month", selected:reportMonth, onClick:k => setReportMonth(reportMonth === k ? "all" : k) });
 }
-function renderChartStatus(){
-  const canvas = document.getElementById("chart-status");
-  if(!canvas) return;
-  const counts = { pending:0, out:0, done:0 };
-  orders.forEach(o => { counts[o.status] = (counts[o.status]||0) + 1; });
-  const data = [counts.pending, counts.out, counts.done];
-  if(chartStatus){
-    chartStatus.data.datasets[0].data = data;
-    chartStatus.update();
-    return;
-  }
-  chartStatus = new Chart(canvas, {
-    type: "doughnut",
-    data: {
-      labels: ["Pending","Out for delivery","Delivered"],
-      datasets: [{ data, backgroundColor:[CHART_WARN, CHART_GREEN, CHART_DARK] }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom" } } }
-  });
-}
+function setReportMonth(k){ reportMonth = k; renderChartRevenue(); }
+
 function renderChartCategory(){
-  const canvas = document.getElementById("chart-category");
-  if(!canvas) return;
   const byCat = {};
   adminProducts.forEach(p => { byCat[p.cat] = (byCat[p.cat] || 0) + p.price * p.qty; });
-  const labels = Object.keys(byCat);
-  const data = labels.map(k => +byCat[k].toFixed(2));
-  if(chartCategory){
-    chartCategory.data.labels = labels;
-    chartCategory.data.datasets[0].data = data;
-    chartCategory.update();
-    return;
-  }
-  chartCategory = new Chart(canvas, {
-    type: "bar",
-    data: { labels, datasets: [{ label:"Stock value ($)", data, backgroundColor: CHART_DARK, borderRadius:6 }] },
-    options: { responsive:true, maintainAspectRatio:false, indexAxis:"y", plugins:{ legend:{ display:false } } }
-  });
+  drawHBarChart("chart-category",
+    Object.keys(byCat).map(k => ({ label:k, value:+byCat[k].toFixed(2), color:byCat[k] >= 100 ? "green" : "red" })),
+    { format:v => "$" + v, threshold:100, label:"Stock value by category" });
 }
+
+let poVendor = "all";
+function setPOVendor(v){ poVendor = v; renderChartPO(); }
+function filteredPOs(){ return purchaseOrders.filter(po => poVendor === "all" || po.supplier === poVendor); }
+
+function renderChartPO(){
+  const sel = document.getElementById("po-vendor");
+  if(sel){
+    const vendors = [...new Set(purchaseOrders.map(po => po.supplier || "Unknown"))].sort((a, b) => a.localeCompare(b));
+    if(poVendor !== "all" && !vendors.includes(poVendor)) poVendor = "all";
+    sel.innerHTML = '<option value="all">All vendors</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join("");
+    sel.value = poVendor;
+  }
+  const live = filteredPOs().filter(po => po.status !== "cancelled");
+  const fmt = v => "$" + v.toLocaleString("en-US");
+  const opts = { format:fmt, color:"dark", label:"Purchase orders", maxBar:64, labelMax:14, minMax:100, left:64 };
+  if(poVendor === "all"){
+    const map = {};
+    live.forEach(po => { const k = po.supplier || "Unknown"; (map[k] = map[k] || { value:0, count:0 }); map[k].value += po.totalCost; map[k].count++; });
+    drawBarChart("chart-po",
+      Object.keys(map).map(k => ({ key:k, label:k, value:+map[k].value.toFixed(2), tip:`${k} · ${map[k].count} order${map[k].count === 1 ? "" : "s"}` })),
+      { ...opts, onClick:k => setPOVendor(k) });
+  } else {
+    // one vendor selected: show each of its purchase orders
+    drawBarChart("chart-po",
+      live.slice().sort((a, b) => a.id - b.id).map(po => ({ key:"po" + po.id, label:"PO #" + po.id, value:+po.totalCost.toFixed(2), tip:`${po.supplier} · PO #${po.id} · ${po.status}` })),
+      opts);
+  }
+}
+window.addEventListener("resize", () => {
+  const panel = document.getElementById("panel-reports");
+  if(panel && panel.style.display !== "none") renderReports();
+});
+
+/* ---- Export invoices to Excel (.xlsx) ---- */
+function exportInvoicesExcel(){
+  const list = orders.filter(o => reportMonth === "all" || monthKey(o.placedAt) === reportMonth)
+                     .sort((a, b) => (b.placedAt || "").localeCompare(a.placedAt || ""));
+  if(!list.length){ alert("No invoices for this month."); return; }
+  const statusName = { pending:"Pending", out:"Out for delivery", done:"Delivered" };
+  const fmtDate = iso => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` : ""; };
+  const total = list.reduce((s, o) => s + o.total, 0);
+  const invoices = [["Invoice #","Date","Customer","Items","Total ($)","Status","Delivery mode"]]
+    .concat(list.map(o => ["#" + o.id, fmtDate(o.placedAt), o.customer, o.items, { money:+o.total.toFixed(2) }, statusName[o.status] || o.status, o.mode || ""]))
+    .concat([["TOTAL","","",list.reduce((s, o) => s + o.items, 0),{ money:+total.toFixed(2) },"",""]]);
+  const summary = [["Month","Invoices","Sales ($)","Delivered"]]
+    .concat(salesByMonth().filter(m => reportMonth === "all" || m.key === reportMonth).map(m => [monthLabel(m.key), m.count, { money:+m.value.toFixed(2) }, m.done]));
+  XLSXLite.download([
+    { name:"Invoices", rows:invoices, widths:[12,18,26,8,12,18,18] },
+    { name:"Monthly summary", rows:summary, widths:[16,10,12,10] }
+  ], `minimart-invoices-${reportMonth === "all" ? "all-months" : reportMonth}.xlsx`);
+}
+/* ---- Export stock value (Excel) ---- */
+function exportStockExcel(){
+  const cats = {};
+  adminProducts.forEach(p => { const c = cats[p.cat] = cats[p.cat] || { n:0, value:0 }; c.n++; c.value += p.price * p.qty; });
+  const catRows = [["Category","Products","Stock value ($)","Level"]].concat(
+    Object.keys(cats).map(k => [k, cats[k].n, { money:+cats[k].value.toFixed(2) }, cats[k].value >= 100 ? "$100 or more" : "Under $100"]));
+  const prodRows = [["Product","Category","Unit price ($)","Qty","Stock value ($)"]].concat(
+    adminProducts.slice().sort((a, b) => String(a.cat).localeCompare(String(b.cat)) || a.name.localeCompare(b.name))
+      .map(p => [p.name, p.cat || "", { money:+p.price.toFixed(2) }, p.qty, { money:+(p.price * p.qty).toFixed(2) }]));
+  XLSXLite.download([
+    { name:"Stock by category", rows:catRows, widths:[22,10,16,16] },
+    { name:"Products", rows:prodRows, widths:[30,20,14,8,16] }
+  ], "minimart-stock-value.xlsx");
+}
+
+/* ---- Export purchase orders (Excel) ---- */
+function exportPOExcel(){
+  const list = filteredPOs();
+  if(!list.length){ alert("No purchase orders for this vendor."); return; }
+  const label = { pending:"Pending", received:"Received", cancelled:"Cancelled" };
+  const poRows = [["PO #","Supplier","Status","Created","Expected date","Items","Total cost ($)"]].concat(
+    list.map(po => ["#" + po.id, po.supplier, label[po.status] || po.status, (po.createdAt || "").slice(0, 10), po.expectedDate || "",
+      po.items.map(i => `${i.qty}× ${i.name}`).join(", "), { money:+po.totalCost.toFixed(2) }]));
+  const sup = {};
+  list.filter(po => po.status !== "cancelled").forEach(po => { const c = sup[po.supplier] = sup[po.supplier] || { n:0, value:0 }; c.n++; c.value += po.totalCost; });
+  const supRows = [["Supplier","Orders","Total spend ($)"]].concat(Object.keys(sup).map(k => [k, sup[k].n, { money:+sup[k].value.toFixed(2) }]));
+  XLSXLite.download([
+    { name:"Purchase orders", rows:poRows, widths:[8,22,12,12,14,50,14] },
+    { name:"Spend by supplier", rows:supRows, widths:[24,10,16] }
+  ], `minimart-purchase-orders-${poVendor === "all" ? "all-vendors" : poVendor.replace(/[^\w-]+/g, "_")}.xlsx`);
+}
+
 function exportReport(){
   let csv = "Order ID,Customer,Items,Total,Status,Mode,Placed\n";
   orders.forEach(o => { csv += `${o.id},${o.customer},${o.items},${o.total},${o.status},${o.mode},${o.placed}\n`; });

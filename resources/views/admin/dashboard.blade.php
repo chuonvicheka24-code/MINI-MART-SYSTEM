@@ -320,18 +320,31 @@
 
         <div class="admin-grid">
           <div class="panel-card">
-            <h3>Revenue by order</h3>
-            <div class="chart-box"><canvas id="chart-revenue"></canvas></div>
+            <div class="chart-head">
+              <div><h3>Sales by month</h3><p class="chart-sub">Click a bar to choose a month, then export its invoices.</p></div>
+              <div class="chart-tools">
+                <select id="report-month" class="chart-select" onchange="setReportMonth(this.value)"><option value="all">All months</option></select>
+                <button class="btn btn-small btn-primary" onclick="exportInvoicesExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+              </div>
+            </div>
+            <div class="chart-box" id="chart-revenue"></div>
           </div>
           <div class="panel-card">
-            <h3>Order status breakdown</h3>
-            <div class="chart-box"><canvas id="chart-status"></canvas></div>
+            <div class="chart-head">
+              <div><h3>Stock value by category</h3><p class="chart-sub">Total value of stock on hand per category.</p></div>
+              <div class="chart-tools"><button class="btn btn-small btn-primary" onclick="exportStockExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div>
+            </div>
+            <div class="chart-legend"><span><i class="dot dot-red"></i>Under $100</span><span><i class="dot dot-green"></i>$100 or more</span></div>
+            <div class="chart-box chart-box-h" id="chart-category"></div>
           </div>
         </div>
 
         <div class="panel-card">
-          <h3>Stock value by category</h3>
-          <div class="chart-box chart-box-wide"><canvas id="chart-category"></canvas></div>
+          <div class="chart-head">
+            <div><h3>Purchase order report</h3><p class="chart-sub">Spend per vendor, scale $0 – $1,000 (grows if a vendor spends more). Cancelled orders excluded.</p></div>
+            <div class="chart-tools"><select id="po-vendor" class="chart-select" onchange="setPOVendor(this.value)"><option value="all">All vendors</option></select><button class="btn btn-small btn-primary" onclick="exportPOExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button></div>
+          </div>
+          <div class="chart-box chart-box-wide" id="chart-po"></div>
         </div>
       </section>
 
@@ -395,7 +408,7 @@
     settings: "{{ route('admin.settings.update') }}",
   };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="{{ asset('js/xlsx-lite.js') }}"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
 <script>
   const origDash = renderDashboard;

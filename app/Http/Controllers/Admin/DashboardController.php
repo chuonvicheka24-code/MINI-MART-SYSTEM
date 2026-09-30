@@ -40,6 +40,7 @@ class DashboardController extends Controller
                 'mode' => $o->deliveryStaff?->vehicle ?? $o->mode_label,
                 'staffId' => $o->delivery_staff_id,
                 'placed' => optional($o->placed_at)->diffForHumans(),
+                'placedAt' => optional($o->placed_at ?? $o->created_at)->toIso8601String(),
             ])->values(),
             'staff' => $staff->map(fn ($s) => $s->only('id', 'name', 'phone', 'vehicle', 'status'))->values(),
             'customers' => $customers->map(fn ($c) => [
