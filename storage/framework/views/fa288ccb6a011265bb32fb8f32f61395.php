@@ -7,7 +7,7 @@
 
 <!-- Green Shopping Cart Browser Tab Favicon -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'><path fill='%2310b981' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77 45.9C72.4 21.6 51.2 4 26.9 4H24C10.7 4 0 13.3 0 26.6zM176 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm320 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z'/></svg>">
-<link rel="stylesheet" href="{{ asset('css/style.css') }}?v=20260908b">
+<link rel="stylesheet" href="<?php echo e(asset('css/style.css')); ?>?v=20260908b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
 <div class="admin-shell">
 
   <aside class="admin-side">
-    <a href="{{ route('home') }}" class="brand">Mini<span>Mart</span></a>
+    <a href="<?php echo e(route('home')); ?>" class="brand">Mini<span>Mart</span></a>
     <a href="#" class="side-link" data-panel="dashboard" onclick="showPanel('dashboard'); return false;"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
     <a href="#" class="side-link" data-panel="orders" onclick="showPanel('orders'); return false;"><i class="fa-solid fa-box"></i> Orders</a>
     <a href="#" class="side-link" data-panel="staff" onclick="showPanel('staff'); return false;"><i class="fa-solid fa-truck-fast"></i> Staff Delivery</a>
@@ -26,9 +26,9 @@
     <a href="#" class="side-link" data-panel="promotions" onclick="showPanel('promotions'); return false;"><i class="fa-solid fa-tags"></i> Promotions</a>
     <a href="#" class="side-link" data-panel="reports" onclick="showPanel('reports'); return false;"><i class="fa-solid fa-chart-line"></i> Reports</a>
     <a href="#" class="side-link" data-panel="settings" onclick="showPanel('settings'); return false;"><i class="fa-solid fa-gear"></i> Settings</a>
-    <div class="side-foot">Logged in as <strong>{{ auth()->user()->first_name }}</strong><br>
-      <a href="{{ route('home') }}" style="color:var(--brand);">← Back to storefront</a><br>
-      <form method="POST" action="{{ route('logout') }}" style="margin-top:6px;">@csrf<button type="submit" style="background:none; border:none; color:var(--brand); padding:0; font:inherit; cursor:pointer; text-decoration:underline;">Log out</button></form>
+    <div class="side-foot">Logged in as <strong><?php echo e(auth()->user()->first_name); ?></strong><br>
+      <a href="<?php echo e(route('home')); ?>" style="color:var(--brand);">← Back to storefront</a><br>
+      <form method="POST" action="<?php echo e(route('logout')); ?>" style="margin-top:6px;"><?php echo csrf_field(); ?><button type="submit" style="background:none; border:none; color:var(--brand); padding:0; font:inherit; cursor:pointer; text-decoration:underline;">Log out</button></form>
     </div>
   </aside>
 
@@ -412,16 +412,16 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  window.MM_CSRF = "{{ csrf_token() }}";
-  window.MM_ADMIN_DATA = @json($data);
+  window.MM_CSRF = "<?php echo e(csrf_token()); ?>";
+  window.MM_ADMIN_DATA = <?php echo json_encode($data, 15, 512) ?>;
   window.MM_ADMIN_ROUTES = {
-    products: "{{ url('/admin/api/products') }}",
-    purchaseOrders: "{{ url('/admin/api/purchase-orders') }}",
-    promotions: "{{ url('/admin/api/promotions') }}",
-    orders: "{{ url('/admin/api/orders') }}",
-    staff: "{{ url('/admin/api/staff') }}",
-    messages: "{{ url('/admin/api/messages') }}",
-    settings: "{{ route('admin.settings.update') }}",
+    products: "<?php echo e(url('/admin/api/products')); ?>",
+    purchaseOrders: "<?php echo e(url('/admin/api/purchase-orders')); ?>",
+    promotions: "<?php echo e(url('/admin/api/promotions')); ?>",
+    orders: "<?php echo e(url('/admin/api/orders')); ?>",
+    staff: "<?php echo e(url('/admin/api/staff')); ?>",
+    messages: "<?php echo e(url('/admin/api/messages')); ?>",
+    settings: "<?php echo e(route('admin.settings.update')); ?>",
   };
 
   // Toggle label and placeholder depending on vehicle selection
@@ -439,8 +439,8 @@
     }
   }
 </script>
-<script src="{{ asset('js/xlsx-lite.js') }}"></script>
-<script src="{{ asset('js/admin.js') }}"></script>
+<script src="<?php echo e(asset('js/xlsx-lite.js')); ?>"></script>
+<script src="<?php echo e(asset('js/admin.js')); ?>"></script>
 <script>
   const origDash = renderDashboard;
   renderDashboard = function(){
@@ -471,4 +471,4 @@
   }
 </script>
 </body>
-</html>
+</html><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/admin/dashboard.blade.php ENDPATH**/ ?>

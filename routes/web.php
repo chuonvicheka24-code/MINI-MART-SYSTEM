@@ -33,7 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
 });
 
-
+Route::get('/returns', function () {
+    return view('returns');
+})->name('returns.index');
 /*
 |--------------------------------------------------------------------------
 | Cart (session based — works for guests and signed-in customers alike)
