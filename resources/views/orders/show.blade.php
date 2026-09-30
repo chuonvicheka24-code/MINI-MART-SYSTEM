@@ -2,6 +2,51 @@
 
 @section('content')
 <style>
+
+   /* Back Button Styling */
+    .btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px; /* Ensures clear spacing above the title */
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background: #f8fafc;
+  color: #10b981;
+  border-color: #cbd5e1;
+}
+
+  /* Status Badges */
+  .badge-status {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+    letter-spacing: 0.2px;
+  }
+
+  .badge-status.status-delivered {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .badge-status.status-active {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  /* Web Order Container */
   .web-order-container {
     max-width: 1140px;
     margin: 0 auto;
@@ -17,6 +62,7 @@
     border: 1px solid #e2e8f0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
+  
   .card-header-title {
     font-size: 16px;
     font-weight: 700;
@@ -26,41 +72,44 @@
     align-items: center;
     gap: 8px;
   }
+
+  /* Stepper Outer Line Container */
   .stepper-line {
-    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 0 40px;
     margin-top: 15px;
+    position: relative;
   }
-  .stepper-line::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 80px;
-    right: 80px;
-    height: 3px;
-    background-color: #e2e8f0;
-    z-index: 1;
-  }
-  .stepper-progress {
-    position: absolute;
-    top: 20px;
-    left: 80px;
-    height: 3px;
-    background-color: #10b981;
-    z-index: 1;
-    transition: width 0.3s ease;
-  }
+
+  /* Individual step item */
   .step-item {
     position: relative;
     z-index: 2;
-    text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex: 1; /* Equal spacing across nodes */
   }
+
+  /* Base track segment connecting steps */
+  .step-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 21px; /* Vertically aligns with center of 42px circle */
+    left: 50%; /* Starts at center of current node */
+    width: 100%; /* Spans to center of next node */
+    height: 3px;
+    background-color: #e2e8f0; /* Default gray track */
+    z-index: 1;
+  }
+
+  /* Active green track segment */
+  .step-item.line-active:not(:last-child)::after {
+    background-color: #10b981; /* Turns green when active */
+  }
+
+  /* Node layout */
   .step-node {
     width: 42px;
     height: 42px;
@@ -73,20 +122,29 @@
     font-size: 16px;
     border: 3px solid #ffffff;
     box-shadow: 0 0 0 1px #cbd5e1;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
   }
+
   .step-node.active {
     background-color: #10b981;
     color: #ffffff;
     box-shadow: 0 0 0 1px #10b981;
   }
+
   .step-label {
-    font-size: 13px;
+    font-size: 12.5px;
     color: #334155;
     font-weight: 600;
     margin-top: 8px;
+    max-width: 120px;
+    line-height: 1.35;
+    text-align: center;
+    word-break: break-word;
   }
 
-  /* Items List Styling */
+  /* Order Item Row & Fixed Product Image Styling */
   .item-row {
     display: flex;
     align-items: center;
@@ -103,12 +161,15 @@
     gap: 14px;
   }
   .item-img {
-    width: 56px;
-    height: 56px;
+    width: 56px !important;
+    height: 56px !important;
+    max-width: 56px !important;
+    max-height: 56px !important;
     border-radius: 8px;
     object-fit: cover;
     background-color: #f8fafc;
     border: 1px solid #e2e8f0;
+    flex-shrink: 0;
   }
   .item-name {
     font-weight: 600;
@@ -120,7 +181,7 @@
     color: #64748b;
   }
 
-  /* Summary Table Key-Value Rows */
+  /* Info Table Rows */
   .info-row {
     display: flex;
     justify-content: space-between;
@@ -141,63 +202,88 @@
     margin-top: 12px;
     padding-top: 12px;
   }
+
+  /* Responsive Fixes */
+  @media (max-width: 640px) {
+    .step-label {
+      font-size: 11px;
+      max-width: 85px;
+    }
+  }
 </style>
 
 <div class="container py-4 web-order-container">
     
-    @php
-      // Step calculations
-      $st = $order->status;
-      $step = match($st) {
-        'pending' => 1,
-        'out' => 2,
-        'done' => 3,
-        default => 1,
-      };
+@php
+  $st = strtolower($order->status ?? 'pending');
+  $step = match($st) {
+    'pending', 'placed' => 1,
+    'out', 'delivering', 'out_for_delivery' => 2,
+    'done', 'delivered', 'completed' => 3,
+    default => 1,
+  };
 
-      // Vehicle transport display settings
-      $isTruck = strtolower($order->transport_type ?? '') === 'truck';
-      $deliveryIcon = $isTruck ? 'fa-truck' : 'fa-motorcycle';
-      $deliveryLabel = $isTruck 
-        ? 'Truck' . ($order->truck_number ? ' (' . $order->truck_number . ')' : '')
-        : 'Motorcycle';
-    @endphp
-
-    {{-- Order Title & Status Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="fw-bold mb-1" style="color: #0f172a;">Order #{{ $order->id }}</h4>
-            <span class="text-muted small">Placed on {{ $order->created_at ? $order->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
+  $isTruck = strtolower($order->transport_type ?? '') === 'truck';
+  $deliveryIcon = $isTruck ? 'fa-truck' : 'fa-motorcycle';
+  $deliveryLabel = $isTruck 
+    ? 'Truck' . ($order->truck_number ? ' (' . $order->truck_number . ')' : '')
+    : 'Motorcycle';
+@endphp
+    {{-- Top Navigation & Order Header --}}
+    <div class="order-header-wrapper mb-4">
+        {{-- Back Button --}}
+        <div class="mb-3">
+            <a href="{{ url()->previous() != url()->current() ? url()->previous() : route('orders.index') }}" class="btn-back">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back to Orders</span>
+        </a>
         </div>
-        <div>
-            <span class="badge bg-success px-3 py-2 fs-6">{{ ucfirst($order->status_label ?? $order->status) }}</span>
+
+        {{-- Order Info & Status Row --}}
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1" style="color: #0f172a; font-size: 24px;">Order #{{ $order->id }}</h3>
+                <p class="text-muted mb-0" style="font-size: 14px;">
+                    Placed on {{ $order->created_at ? $order->created_at->format('d M Y, h:i A') : 'N/A' }}
+                </p>
+            </div>
+            
+            {{-- Status Badge --}}
+            <div>
+                <span class="badge-status {{ $step == 3 ? 'status-delivered' : 'status-active' }}">
+                    {{ ucfirst($order->status_label ?? $order->status ?? 'Pending') }}
+                </span>
+            </div>
         </div>
     </div>
 
-    {{-- 1. Stepper Card --}}
+    {{-- Stepper Progress Card --}}
     <div class="order-card">
         <div class="card-header-title">
             <i class="fa-solid fa-truck-fast text-success"></i> Delivery Status
         </div>
+        
         <div class="stepper-line">
-            <div class="stepper-progress" style="width: {{ ($step - 1) * 50 }}%;"></div>
-            
-            <div class="step-item">
+            <!-- Step 1 -->
+            <div class="step-item {{ $step >= 2 ? 'line-active' : '' }}">
                 <div class="step-node {{ $step >= 1 ? 'active' : '' }}">
                     <i class="fa-solid fa-receipt"></i>
                 </div>
                 <span class="step-label">Order Placed</span>
             </div>
 
-            <div class="step-item">
+            <!-- Step 2 -->
+            <div class="step-item {{ $step >= 3 ? 'line-active' : '' }}">
                 <div class="step-node {{ $step >= 2 ? 'active' : '' }}">
                     <i class="fa-solid {{ $deliveryIcon }}"></i>
                 </div>
                 <span class="step-label">
-                    Out for Delivery {{ $deliveryLabel }}
+                    Out for Delivery<br>
+                    <small style="font-size: 11px; color: #64748b; font-weight: 500;">{{ $deliveryLabel }}</small>
                 </span>
             </div>
 
+            <!-- Step 3 (No line after step 3) -->
             <div class="step-item">
                 <div class="step-node {{ $step >= 3 ? 'active' : '' }}">
                     <i class="fa-solid fa-house-circle-check"></i>
