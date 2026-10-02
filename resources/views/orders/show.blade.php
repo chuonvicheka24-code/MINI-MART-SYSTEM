@@ -249,7 +249,7 @@
             </div>
             
             {{-- Status Badge --}}
-            <div>
+            <div id="order-badge-live" data-live>
                 <span class="badge-status {{ $step == 3 ? 'status-delivered' : 'status-active' }}">
                     {{ ucfirst($order->status_label ?? $order->status ?? 'Pending') }}
                 </span>
@@ -258,7 +258,7 @@
     </div>
 
     {{-- Stepper Progress Card --}}
-    <div class="order-card">
+    <div class="order-card" id="order-stepper-live" data-live>
         <div class="card-header-title">
             <i class="fa-solid fa-truck-fast text-success"></i> Delivery Status
         </div>

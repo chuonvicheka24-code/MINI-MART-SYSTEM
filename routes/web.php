@@ -25,6 +25,7 @@ use App\Http\Controllers\OrderController as CustomerOrderController;
 */
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/data', [ProductController::class, 'data'])->name('products.data');
 Route::get('/contact', [ContactController::class, 'index'])->name('contact.index');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 // Order history is personal data — requires login, same as checkout.
@@ -74,6 +75,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 */
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('index');
+    Route::get('/api/data', [DashboardController::class, 'data'])->name('data');
 
     Route::post('/api/products', [AdminProductController::class, 'store'])->name('products.store');
     Route::put('/api/products/{product}', [AdminProductController::class, 'update'])->name('products.update');

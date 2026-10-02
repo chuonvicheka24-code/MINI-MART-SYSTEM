@@ -422,6 +422,7 @@
     staff: "{{ url('/admin/api/staff') }}",
     messages: "{{ url('/admin/api/messages') }}",
     settings: "{{ route('admin.settings.update') }}",
+    data: "{{ route('admin.data') }}",
   };
 
   // Toggle label and placeholder depending on vehicle selection

@@ -88,7 +88,7 @@
         <div class="box"><span id="cd-s">00</span><small>SEC</small></div>
       </div>
     </div>
-    <div class="product-grid" id="deal-grid" style="grid-template-columns: repeat(6,1fr);">
+    <div class="product-grid" id="deal-grid" data-live style="grid-template-columns: repeat(6,1fr);">
       @foreach ($dealIds as $id)
         @php($p = $products->firstWhere('id', $id))
         @continue(! $p)
@@ -114,7 +114,7 @@
       <h2><i class="fa-solid fa-box-open" style="color:var(--brand-text);"></i> New Arrivals</h2>
       <a href="{{ route('products.index') }}?sort=new" style="font-weight:600; color:var(--brand-dark); font-size:14px;">View All →</a>
     </div>
-    <div class="product-grid" id="new-grid">
+    <div class="product-grid" id="new-grid" data-live>
       @foreach ($newArrivals as $p)
         <div class="product-card">
           <div class="product-media">

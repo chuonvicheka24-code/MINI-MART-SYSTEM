@@ -143,6 +143,7 @@
     checkoutStore: "{{ route('checkout.store') }}",
     contactStore: "{{ route('contact.store') }}",
     products: "{{ route('products.index') }}",
+    productsData: "{{ route('products.data') }}",
   };
   window.MM_CATEGORIES = @json($categories->pluck('name'));
   window.MM_CATEGORY_ICONS = @json($categories->pluck('icon', 'name'));

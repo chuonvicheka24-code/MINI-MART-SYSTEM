@@ -12,11 +12,27 @@ use App\Models\Promotion;
 use App\Models\PurchaseOrder;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function index(): View
+    {
+        $data = $this->payload();
+        $categories = Category::orderBy('name')->get();
+
+        return view('admin.dashboard', compact('data', 'categories'));
+    }
+
+    /** JSON snapshot used by the dashboard's auto-refresh polling. */
+    public function data(): JsonResponse
+    {
+        return response()->json($this->payload())
+            ->header('Cache-Control', 'no-store');
+    }
+
+    private function payload(): array
     {
         $products = Product::with('category')->orderBy('qty')->get();
         $categories = Category::orderBy('name')->get();
@@ -70,6 +86,6 @@ class DashboardController extends Controller
             'promotions' => $promotions->map(fn ($p) => $p->toAdminArray())->values(),
         ];
 
-        return view('admin.dashboard', compact('data', 'categories'));
+        return $data;
     }
 }

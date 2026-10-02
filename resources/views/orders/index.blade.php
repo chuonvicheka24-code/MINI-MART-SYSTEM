@@ -127,6 +127,7 @@
         <a href="{{ route('orders.index', ['status' => 'done']) }}" class="app-tab {{ $currentStatus === 'done' ? 'active' : '' }}">Completed</a>
     </div>
 
+    <div id="orders-live" data-live>
     @forelse($orders as $o)
         <div class="app-order-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -153,6 +154,7 @@
     @empty
         <div class="text-center py-4 bg-white rounded border">No orders found.</div>
     @endforelse
+    </div>
 
 </div>
 @endsection

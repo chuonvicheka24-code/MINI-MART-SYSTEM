@@ -148,3 +148,48 @@ document.addEventListener("DOMContentLoaded", () => {
   refreshCartCache();
   wireHeaderSearch();
 });
+
+
+/* ============================================================
+   AUTO REFRESH (customer pages)
+   Any element marked  data-live  (with a unique id) is re-fetched
+   from the server every LIVE_REFRESH_MS and swapped in place when
+   its server-side HTML has changed — no full page reload, scroll
+   position and typing are untouched. Used for: home deal / new
+   arrival grids, My Orders list, and the order tracking page.
+   ============================================================ */
+const LIVE_REFRESH_MS = 15000;   // 15 seconds
+const _liveLast = {};
+
+function refreshLiveBlocks(){
+  const blocks = document.querySelectorAll("[data-live][id]");
+  if(!blocks.length || document.hidden) return;
+
+  fetch(location.href, {
+    headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "text/html" },
+    credentials: "same-origin",
+    cache: "no-store",
+  })
+    .then(r => {
+      if(r.redirected && /\/login/.test(r.url)){ location.reload(); return null; } // session expired
+      return r.ok ? r.text() : null;
+    })
+    .then(html => {
+      if(!html) return;
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      blocks.forEach(el => {
+        const fresh = doc.getElementById(el.id);
+        if(!fresh) return;
+        const next = fresh.innerHTML;
+        if(_liveLast[el.id] === undefined){ _liveLast[el.id] = next; return; } // first tick = baseline
+        if(_liveLast[el.id] !== next){
+          el.innerHTML = next;
+          _liveLast[el.id] = next;
+        }
+      });
+    })
+    .catch(() => {});
+}
+
+setInterval(refreshLiveBlocks, LIVE_REFRESH_MS);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) refreshLiveBlocks(); });

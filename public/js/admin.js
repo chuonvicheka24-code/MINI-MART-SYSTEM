@@ -1099,3 +1099,69 @@ document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("set-threshold").value = settings.lowStockThreshold;
   showPanel("dashboard");
 });
+
+
+/* ============================================================
+   AUTO REFRESH — polls /admin/api/data and re-renders the live
+   panels without a page reload. Pauses while the tab is hidden
+   or while you are typing in a form, so nothing you are editing
+   gets wiped.
+   ============================================================ */
+const AUTO_REFRESH_MS = 100;   // change to taste (10000 = 10 seconds)
+let autoRefreshBusy = false;
+
+function isUserEditing(){
+  const el = document.activeElement;
+  return !!el && ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName);
+}
+
+function applyServerData(d){
+  const prevPending = orders.filter(o => o.status === "pending").length;
+  const prevUnread  = messages.filter(m => !m.read).length;
+
+  adminProducts  = d.products.map(p => ({ ...p }));
+  categories     = [...d.categories];
+  orders         = d.orders.map(o => ({ ...o }));
+  customers      = d.customers.map(c => ({ ...c }));
+  deliveryStaff  = d.staff.map(s => ({ ...s }));
+  messages       = d.messages.map(m => ({ ...m }));
+  settings       = { ...d.settings };
+  purchaseOrders = d.purchaseOrders.map(po => ({ ...po, items: po.items.map(i => ({ ...i })) }));
+  promotions     = d.promotions.map(p => ({ ...p, productIds: [...p.productIds], productNames: [...p.productNames] }));
+
+  // data-driven views only (skip form/select builders so inputs keep their values)
+  renderDashboard();
+  renderOrdersTable();
+  renderStaffPanel();
+  renderCustomersTable();
+  renderMessages();
+  renderInventory();
+  renderPurchaseOrders();
+  renderPromotions();
+  renderReports();
+
+  const nowPending = orders.filter(o => o.status === "pending").length;
+  const nowUnread  = messages.filter(m => !m.read).length;
+  if (nowPending > prevPending && typeof flashAlert === "function") flashAlert("New order received!");
+  else if (nowUnread > prevUnread && typeof flashAlert === "function") flashAlert("New customer message!");
+}
+
+function refreshAdminData(){
+  if (autoRefreshBusy || document.hidden || isUserEditing()) return Promise.resolve();
+  autoRefreshBusy = true;
+  return fetch(ROUTES.data, {
+    headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+    credentials: "same-origin",
+    cache: "no-store",
+  })
+    .then(r => {
+      if (r.status === 401 || r.status === 419) { window.location.reload(); return null; } // session expired
+      return r.ok ? r.json() : null;
+    })
+    .then(d => { if (d) applyServerData(d); })
+    .catch(() => {})                       // network blip — try again next tick
+    .finally(() => { autoRefreshBusy = false; });
+}
+
+setInterval(refreshAdminData, AUTO_REFRESH_MS);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshAdminData(); });

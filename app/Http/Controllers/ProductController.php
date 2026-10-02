@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -19,5 +20,13 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
 
         return view('products.index', compact('products', 'categories'));
+    }
+
+    /** Live catalog snapshot used by the storefront's auto-refresh polling. */
+    public function data(): JsonResponse
+    {
+        return response()->json(
+            Product::with('category')->get()->map->toStorefrontArray()->values()
+        )->header('Cache-Control', 'no-store');
     }
 }

@@ -422,6 +422,7 @@
     staff: "<?php echo e(url('/admin/api/staff')); ?>",
     messages: "<?php echo e(url('/admin/api/messages')); ?>",
     settings: "<?php echo e(route('admin.settings.update')); ?>",
+    data: "<?php echo e(route('admin.data')); ?>",
   };
 
   // Toggle label and placeholder depending on vehicle selection
