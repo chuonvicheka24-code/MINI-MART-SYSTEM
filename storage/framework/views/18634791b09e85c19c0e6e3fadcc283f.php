@@ -46,4 +46,4 @@
         </div>
     </div>
 </header>
-<?php /**PATH E:\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/navigation.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/navigation.blade.php ENDPATH**/ ?>

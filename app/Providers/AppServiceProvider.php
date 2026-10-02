@@ -2,18 +2,20 @@
 
 namespace App\Providers;
 
-use App\Models\Category;
-use App\Models\Product;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        //
+    }
+
     public function boot(): void
     {
-        View::composer('*', function ($view) {
-            $view->with('categories', Category::orderBy('name')->get());
-            $view->with('products', Product::all());
-        });
+        if (config('app.env') !== 'local' || request()->server('HTTP_X_FORWARDED_PROTO') === 'https') {
+            URL::forceScheme('https');
+        }
     }
 }

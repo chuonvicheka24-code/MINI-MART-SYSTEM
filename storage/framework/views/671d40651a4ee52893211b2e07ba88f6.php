@@ -5,4 +5,4 @@
     <?php echo e($slot); ?>
 
 </section>
-<?php /**PATH E:\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/card.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/card.blade.php ENDPATH**/ ?>

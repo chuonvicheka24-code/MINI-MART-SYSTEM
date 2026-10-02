@@ -57,4 +57,4 @@
     </script>
 </body>
 </html>
-<?php /**PATH E:\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/layout.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\vendor\laravel\framework\src\Illuminate\Foundation\Providers/../resources/exceptions/renderer/components/layout.blade.php ENDPATH**/ ?>

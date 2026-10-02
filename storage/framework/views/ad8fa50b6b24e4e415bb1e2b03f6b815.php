@@ -8,7 +8,8 @@
 <!-- Green Shopping Cart Browser Tab Favicon -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'><path fill='%2310b981' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77 45.9C72.4 21.6 51.2 4 26.9 4H24C10.7 4 0 13.3 0 26.6zM176 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm320 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z'/></svg>">
 
-<link rel="stylesheet" href="<?php echo e(asset('css/style.css')); ?>?v=20260908b">
+<!-- Fixed Asset Path for ngrok / HTTP & HTTPS -->
+<link rel="stylesheet" href="<?php echo e(secure_asset('css/style.css')); ?>?v=20260908b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -40,43 +41,44 @@
     </form>
 
     <div class="head-actions">
-  <?php if(auth()->guard()->check()): ?>
-    <?php if(auth()->user()->isAdmin()): ?>
-      <!-- Admin Link -->
-      <a href="<?php echo e(route('admin.index')); ?>" class="mini-link">
-        <span class="glyph"><i class="fa-solid fa-user"></i></span>
-        <span><?php echo e(auth()->user()->first_name); ?><br><strong>Store dashboard</strong></span>
+      <?php if(auth()->guard()->check()): ?>
+        <?php if(auth()->user()->isAdmin()): ?>
+          <!-- Admin Link -->
+          <a href="<?php echo e(route('admin.index')); ?>" class="mini-link">
+            <span class="glyph"><i class="fa-solid fa-user"></i></span>
+            <span><?php echo e(auth()->user()->first_name); ?><br><strong>Store dashboard</strong></span>
+          </a>
+        <?php else: ?>
+          <!-- Customer Link -->
+          <div class="mini-link" style="display:flex; align-items:center; gap:8px;">
+            <span class="glyph"><i class="fa-solid fa-user"></i></span>
+            <span><?php echo e(auth()->user()->first_name); ?><br><strong>My Account</strong></span>
+          </div>
+        <?php endif; ?>
+
+        <!-- Logout Form (Works for both Admin and Customer) -->
+        <form action="<?php echo e(route('logout')); ?>" method="POST" style="margin:0;">
+          <?php echo csrf_field(); ?>
+          <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
+            <span class="glyph" style="color:#dc2626;"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span style="color:#dc2626;">Log Out<br><strong style="color:#dc2626;">Exit</strong></span>
+          </button>
+        </form>
+      <?php else: ?>
+        <!-- Guest Sign In Link -->
+        <a href="<?php echo e(route('login')); ?>" class="mini-link">
+          <span class="glyph"><i class="fa-solid fa-user"></i></span>
+          <span>Sign In / Register<br><strong>My Account</strong></span>
+        </a>
+      <?php endif; ?>
+
+      <!-- Cart Link -->
+      <a href="<?php echo e(route('cart.index')); ?>" class="mini-link head-cart">
+        <span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span>
+        <span>My Cart<br><strong data-head-cart-total>$0.00</strong></span>
       </a>
-    <?php else: ?>
-      <!-- Customer Link -->
-      <div class="mini-link" style="display:flex; align-items:center; gap:8px;">
-        <span class="glyph"><i class="fa-solid fa-user"></i></span>
-        <span><?php echo e(auth()->user()->first_name); ?><br><strong>My Account</strong></span>
-      </div>
-    <?php endif; ?>
-
-    <!-- Logout Form (Works for both Admin and Customer) -->
-    <form action="<?php echo e(route('logout')); ?>" method="POST" style="margin:0;">
-      <?php echo csrf_field(); ?>
-      <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
-        <span class="glyph" style="color:#dc2626;"><i class="fa-solid fa-right-from-bracket"></i></span>
-        <span style="color:#dc2626;">Log Out<br><strong style="color:#dc2626;">Exit</strong></span>
-      </button>
-    </form>
-  <?php else: ?>
-    <!-- Guest Sign In Link -->
-    <a href="<?php echo e(route('login')); ?>" class="mini-link">
-      <span class="glyph"><i class="fa-solid fa-user"></i></span>
-      <span>Sign In / Register<br><strong>My Account</strong></span>
-    </a>
-  <?php endif; ?>
-
-  <!-- Cart Link -->
-  <a href="<?php echo e(route('cart.index')); ?>" class="mini-link head-cart">
-    <span class="glyph"><i class="fa-solid fa-cart-shopping"></i><span class="cart-count" data-cart-count>0</span></span>
-    <span>My Cart<br><strong data-head-cart-total>$0.00</strong></span>
-  </a>
-</div>
+    </div>
+  </div>
 
   <div class="wrap nav-row">
     <div class="cat-dropdown-wrap" tabindex="0">
@@ -149,7 +151,9 @@
   // Inject global products if passed from controller/ViewShare
   window.MM_PRODUCTS = <?php echo json_encode(isset($products) ? $products->map->toStorefrontArray() : [], 15, 512) ?>;
 </script>
-<script src="<?php echo e(asset('js/app.js')); ?>"></script>
+
+<!-- Fixed JS Asset Path for ngrok -->
+<script src="<?php echo e(secure_asset('js/app.js')); ?>"></script>
 <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
-</html><?php /**PATH E:\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>
+</html><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>
