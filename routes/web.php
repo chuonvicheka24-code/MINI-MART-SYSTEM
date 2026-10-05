@@ -31,6 +31,7 @@ Route::post('/contact', [ContactController::class, 'store'])->name('contact.stor
 // Order history is personal data — requires login, same as checkout.
 Route::middleware('auth')->group(function () {
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/status', [CustomerOrderController::class, 'status'])->name('orders.status');
     Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
 });
 

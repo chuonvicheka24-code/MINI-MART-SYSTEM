@@ -345,7 +345,7 @@
         <div class="col-lg-5">
             
             {{-- Delivery Card --}}
-            <div class="order-card">
+            <div class="order-card" id="order-delivery-live" data-live>
                 <div class="card-header-title">
                     <i class="fa-solid fa-location-dot text-success"></i> Delivery Details
                 </div>

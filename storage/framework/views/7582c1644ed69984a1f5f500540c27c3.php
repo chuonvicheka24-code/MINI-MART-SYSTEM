@@ -248,7 +248,7 @@
             </div>
             
             
-            <div>
+            <div id="order-badge-live" data-live>
                 <span class="badge-status <?php echo e($step == 3 ? 'status-delivered' : 'status-active'); ?>">
                     <?php echo e(ucfirst($order->status_label ?? $order->status ?? 'Pending')); ?>
 
@@ -258,7 +258,7 @@
     </div>
 
     
-    <div class="order-card">
+    <div class="order-card" id="order-stepper-live" data-live>
         <div class="card-header-title">
             <i class="fa-solid fa-truck-fast text-success"></i> Delivery Status
         </div>
@@ -346,7 +346,7 @@
         <div class="col-lg-5">
             
             
-            <div class="order-card">
+            <div class="order-card" id="order-delivery-live" data-live>
                 <div class="card-header-title">
                     <i class="fa-solid fa-location-dot text-success"></i> Delivery Details
                 </div>

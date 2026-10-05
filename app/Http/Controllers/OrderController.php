@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -59,5 +60,35 @@ class OrderController extends Controller
         abort_unless($ownsOrder || $user->isAdmin(), 403, "You don't have access to this order.");
 
         return view('orders.show', compact('order', 'categories'));
+    }
+
+    /**
+     * Tiny "did anything change?" endpoint polled every few seconds by app.js.
+     * Returns a signature of this customer's orders (id + status + staff + updated_at),
+     * so when the admin approves / assigns / delivers, the signature changes.
+     */
+    public function status(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $rows = Order::where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere(function ($q2) use ($user) {
+                        $q2->whereNull('user_id')
+                            ->where(function ($q3) use ($user) {
+                                $q3->where('customer_email', $user->email)
+                                    ->orWhere('customer_phone', $user->phone);
+                            });
+                    });
+            })
+            ->get(['id', 'status', 'delivery_staff_id', 'transport_type', 'updated_at']);
+
+        $sig = md5($rows->map(fn ($o) => $o->id.'|'.$o->status.'|'.$o->delivery_staff_id.'|'.$o->transport_type.'|'.optional($o->updated_at)->timestamp)->implode(','));
+
+        return response()->json(
+            ['sig' => $sig, 'orders' => $rows->pluck('status', 'id')],
+            200,
+            ['Cache-Control' => 'no-store']
+        );
     }
 }

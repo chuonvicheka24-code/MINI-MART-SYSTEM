@@ -108,6 +108,23 @@
   document.getElementById("sort-select").addEventListener("change", e=>{ sort = e.target.value; render(); });
 
   render();
+
+  // Auto refresh: pull the latest prices / stock every 15s and redraw only if something changed.
+  let lastCatalog = JSON.stringify(window.MM_PRODUCTS);
+  setInterval(() => {
+    if (document.hidden) return;
+    fetch(window.MM_ROUTES.productsData, { headers: { "Accept": "application/json" }, cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(list => {
+        if (!list) return;
+        const json = JSON.stringify(list);
+        if (json === lastCatalog) return;
+        lastCatalog = json;
+        window.MM_PRODUCTS = list;
+        render();
+      })
+      .catch(() => {});
+  }, 15000);
 </script>
 <?php $__env->stopPush(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/products/index.blade.php ENDPATH**/ ?>

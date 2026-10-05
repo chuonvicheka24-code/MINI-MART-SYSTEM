@@ -193,3 +193,57 @@ function refreshLiveBlocks(){
 
 setInterval(refreshLiveBlocks, LIVE_REFRESH_MS);
 document.addEventListener("visibilitychange", () => { if(!document.hidden) refreshLiveBlocks(); });
+
+
+/* ============================================================
+   INSTANT ORDER UPDATES (signed-in customers)
+   Every ORDER_POLL_MS we ask a tiny endpoint for a signature of the
+   customer's orders. The moment the admin approves / assigns / delivers
+   an order the signature changes, so we redraw the live blocks right
+   away (no waiting for the 15s timer) and show a small toast.
+   ============================================================ */
+const ORDER_POLL_MS = 4000;   // 4 seconds
+let _orderSig = null, _orderStates = null;
+
+function mmToast(msg){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:9999;background:#10b981;color:#fff;" +
+    "padding:12px 18px;border-radius:10px;font:600 14px system-ui;box-shadow:0 6px 20px rgba(0,0,0,.2)";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 5000);
+}
+
+function pollOrderStatus(){
+  if(!window.MM_ROUTES || !window.MM_ROUTES.ordersStatus || document.hidden) return;
+  fetch(window.MM_ROUTES.ordersStatus, {
+    headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+    credentials: "same-origin",
+    cache: "no-store",
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if(!d) return;
+      if(_orderSig === null){ _orderSig = d.sig; _orderStates = d.orders; return; } // baseline
+      if(d.sig === _orderSig) return;
+
+      // find which order changed so the toast is useful
+      let msg = "Your order was updated";
+      for(const id in d.orders){
+        if(_orderStates[id] && _orderStates[id] !== d.orders[id]){
+          msg = d.orders[id] === "out" ? `Order #${id} was approved — out for delivery!`
+              : d.orders[id] === "done" ? `Order #${id} was delivered!`
+              : `Order #${id} was updated`;
+        }
+      }
+      _orderSig = d.sig; _orderStates = d.orders;
+
+      if(document.querySelector("[data-live][id]")) refreshLiveBlocks(); // redraw in place
+      mmToast(msg);
+    })
+    .catch(() => {});
+}
+
+setInterval(pollOrderStatus, ORDER_POLL_MS);
+document.addEventListener("DOMContentLoaded", pollOrderStatus);
+document.addEventListener("visibilitychange", () => { if(!document.hidden) pollOrderStatus(); });

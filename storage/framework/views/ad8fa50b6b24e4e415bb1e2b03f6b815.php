@@ -143,6 +143,10 @@
     checkoutStore: "<?php echo e(route('checkout.store')); ?>",
     contactStore: "<?php echo e(route('contact.store')); ?>",
     products: "<?php echo e(route('products.index')); ?>",
+    productsData: "<?php echo e(route('products.data')); ?>",
+    <?php if(auth()->guard()->check()): ?>
+    ordersStatus: "<?php echo e(route('orders.status')); ?>",
+    <?php endif; ?>
   };
   window.MM_CATEGORIES = <?php echo json_encode($categories->pluck('name'), 15, 512) ?>;
   window.MM_CATEGORY_ICONS = <?php echo json_encode($categories->pluck('icon', 'name'), 512) ?>;

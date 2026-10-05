@@ -86,7 +86,7 @@
         <div class="box"><span id="cd-s">00</span><small>SEC</small></div>
       </div>
     </div>
-    <div class="product-grid" id="deal-grid" style="grid-template-columns: repeat(6,1fr);">
+    <div class="product-grid" id="deal-grid" data-live style="grid-template-columns: repeat(6,1fr);">
       <?php $__currentLoopData = $dealIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <?php ($p = $products->firstWhere('id', $id)); ?>
         <?php if(! $p) continue; ?>
@@ -112,7 +112,7 @@
       <h2><i class="fa-solid fa-box-open" style="color:var(--brand-text);"></i> New Arrivals</h2>
       <a href="<?php echo e(route('products.index')); ?>?sort=new" style="font-weight:600; color:var(--brand-dark); font-size:14px;">View All →</a>
     </div>
-    <div class="product-grid" id="new-grid">
+    <div class="product-grid" id="new-grid" data-live>
       <?php $__currentLoopData = $newArrivals; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <div class="product-card">
           <div class="product-media">
