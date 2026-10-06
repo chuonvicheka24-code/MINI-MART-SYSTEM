@@ -11,6 +11,7 @@ class Setting extends Model
         'hours',
         'delivery_rate',
         'low_stock_threshold',
+        'hero_image',
     ];
 
     protected function casts(): array

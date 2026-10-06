@@ -24,7 +24,7 @@
         </div>
         <div class="hero2-media">
           <div class="hero-badge"><span>30%</span>UP TO<br>OFF</div>
-          <img src="{{ asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg') }}" alt="Basket of fresh groceries">
+          <img src="{{ $heroImage }}" alt="Basket of fresh groceries">
         </div>
       </div>
     </section>

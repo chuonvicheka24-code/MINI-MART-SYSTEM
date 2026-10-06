@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\PurchaseOrderController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\SiteImageController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -106,4 +107,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/api/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
 
     Route::put('/api/settings', [SettingController::class, 'update'])->name('settings.update');
+
+    Route::post('/api/site-images/hero', [SiteImageController::class, 'hero'])->name('siteImages.hero');
+    Route::delete('/api/site-images/hero', [SiteImageController::class, 'resetHero'])->name('siteImages.resetHero');
+    Route::post('/api/site-images/category/{category}', [SiteImageController::class, 'category'])->name('siteImages.category');
 });

@@ -365,9 +365,27 @@
       </section>
 
       <!-- ============ SETTINGS ============ -->
-      <section class="admin-panel" id="panel-settings">
-        <div class="admin-grid">
-        <div class="panel-card" style="max-width:520px;">
+      <style>
+  #panel-settings .settings-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:22px; align-items:start; }
+  #panel-settings .panel-card{ margin-bottom:0; }
+  #panel-settings .img-card{ grid-column:1 / -1; }
+  #panel-settings .img-split{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:28px; }
+  #panel-settings .img-box{ background:#f6fbf8; border:1px solid var(--line, #e3ece6); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:14px; }
+  #panel-settings .img-title{ font-weight:700; font-size:14.5px; color:#1b3a2a; }
+  #panel-settings .img-title span{ display:block; font-weight:400; font-size:12.5px; color:#6b7d72; margin-top:2px; }
+  #panel-settings .hero-frame{ aspect-ratio:16/9; background:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--line, #e3ece6); }
+  #panel-settings .hero-frame img{ width:100%; height:100%; object-fit:contain; }
+  #panel-settings .cat-row{ display:flex; gap:18px; align-items:center; }
+  #panel-settings .cat-frame{ width:130px; height:130px; flex:none; border-radius:50%; overflow:hidden; background:#fff; border:3px solid #fff; box-shadow:0 2px 10px rgba(0,0,0,.12); }
+  #panel-settings .cat-frame img{ width:100%; height:100%; object-fit:cover; }
+  #panel-settings .cat-fields{ flex:1; display:flex; flex-direction:column; gap:12px; min-width:0; }
+  #panel-settings .cat-fields select, #panel-settings .file-input{ width:100%; border:1.5px solid var(--line, #dfe8e2); border-radius:10px; padding:10px 12px; background:#fff; font-size:14px; }
+  #panel-settings .file-input{ border-style:dashed; cursor:pointer; }
+  #panel-settings .img-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:auto; }
+</style>
+<section class="admin-panel" id="panel-settings">
+        <div class="settings-grid">
+        <div class="panel-card">
           <h3>Add discount</h3>
           <form onsubmit="applyDiscountForm(event)">
             <div class="field">
@@ -390,7 +408,7 @@
           </div>
         </div>
 
-        <div class="panel-card" style="max-width:520px;">
+        <div class="panel-card">
           <h3>Store settings</h3>
           <form onsubmit="saveSettings(event)">
             <div class="field"><label for="set-name">Store name</label><input id="set-name"></div>
@@ -402,6 +420,46 @@
             <button class="btn btn-primary" type="submit">Save settings</button>
           </form>
         </div>
+
+        <div class="panel-card img-card">
+          <h3>Homepage images</h3>
+          <?php
+            $siteSettings = \App\Models\Setting::current();
+            $heroUrl = \App\Models\Product::resolveImageUrl($siteSettings->hero_image ?: \App\Http\Controllers\Admin\SiteImageController::DEFAULT_HERO);
+          ?>
+          <div class="img-split">
+
+            <div class="img-box">
+              <div class="img-title">Hero banner <span>Big image on the home page</span></div>
+              <div class="hero-frame"><img id="hero-preview" src="<?php echo e($heroUrl); ?>" alt="Hero banner"></div>
+              <input class="file-input" type="file" id="hero-file" accept="image/png,image/jpeg,image/webp" onchange="previewSiteImage(this,'hero-preview')">
+              <div class="img-actions">
+                <button class="btn btn-primary" type="button" onclick="uploadHero()"><i class="fa-solid fa-upload"></i> Upload hero image</button>
+                <button class="btn btn-small" type="button" onclick="resetHero()">Reset to default</button>
+              </div>
+            </div>
+
+            <div class="img-box">
+              <div class="img-title">Category image <span>Round photos under "Shop By Category"</span></div>
+              <div class="cat-row">
+                <div class="cat-frame"><img id="cat-preview" src="" alt="Category image"></div>
+                <div class="cat-fields">
+                  <select id="cat-img-select" onchange="showCategoryImage()">
+                    <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                      <option value="<?php echo e($c->id); ?>" data-img="<?php echo e($c->image_url); ?>"><?php echo e($c->name); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                  </select>
+                  <input class="file-input" type="file" id="cat-file" accept="image/png,image/jpeg,image/webp" onchange="previewSiteImage(this,'cat-preview')">
+                </div>
+              </div>
+              <div class="img-actions">
+                <button class="btn btn-primary" type="button" onclick="uploadCategoryImage()"><i class="fa-solid fa-upload"></i> Upload category image</button>
+              </div>
+            </div>
+
+          </div>
+          <p class="form-note" style="margin-top:14px;">JPG, PNG or WEBP, up to 2 MB.</p>
+        </div>
         </div>
       </section>
 
@@ -410,6 +468,67 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+
+<script>
+  // ---- Homepage images (Settings page) ----
+  const SITE_IMG = {
+    hero: "<?php echo e(route('admin.siteImages.hero')); ?>",
+    category: id => "<?php echo e(url('/admin/api/site-images/category')); ?>/" + id,
+  };
+  function siteToast(msg){ (typeof flashAlert === "function") ? flashAlert(msg) : alert(msg); }
+
+  function previewSiteImage(input, imgId){
+    if(input.files && input.files[0]) document.getElementById(imgId).src = URL.createObjectURL(input.files[0]);
+  }
+
+  async function sendSiteImage(url, input, method = "POST"){
+    if(!input.files || !input.files[0]){ siteToast("Choose an image first."); return null; }
+    const fd = new FormData();
+    fd.append("image", input.files[0]);
+    try{
+      const r = await fetch(url, { method, body: fd, headers: { "Accept":"application/json", "X-CSRF-TOKEN": window.MM_CSRF } });
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok){
+        siteToast((d.errors && d.errors.image && d.errors.image[0]) || d.message || "Upload failed (max 2 MB, JPG/PNG/WEBP).");
+        return null;
+      }
+      return d;
+    }catch(e){ siteToast("Upload failed. Check your connection."); return null; }
+  }
+
+  async function uploadHero(){
+    const input = document.getElementById("hero-file");
+    const d = await sendSiteImage(SITE_IMG.hero, input);
+    if(d){ document.getElementById("hero-preview").src = d.url; input.value = ""; siteToast("Hero image updated. Refresh the home page to see it."); }
+  }
+
+  function resetHero(){
+    fetch(SITE_IMG.hero, { method:"DELETE", headers:{ "Accept":"application/json", "X-CSRF-TOKEN": window.MM_CSRF } })
+      .then(r => r.json()).then(d => { document.getElementById("hero-preview").src = d.url; siteToast("Hero image reset to default."); });
+  }
+
+  function showCategoryImage(){
+    const sel = document.getElementById("cat-img-select");
+    if(!sel.options.length) return;
+    document.getElementById("cat-preview").src = sel.selectedOptions[0].dataset.img;
+    document.getElementById("cat-file").value = "";
+  }
+
+  async function uploadCategoryImage(){
+    const sel = document.getElementById("cat-img-select");
+    const input = document.getElementById("cat-file");
+    const d = await sendSiteImage(SITE_IMG.category(sel.value), input);
+    if(d){
+      sel.selectedOptions[0].dataset.img = d.url;
+      document.getElementById("cat-preview").src = d.url;
+      input.value = "";
+      siteToast(sel.selectedOptions[0].textContent + " image updated.");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", showCategoryImage);
+</script>
 
 <script>
   window.MM_CSRF = "<?php echo e(csrf_token()); ?>";
