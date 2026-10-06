@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'><path fill='%2310b981' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77 45.9C72.4 21.6 51.2 4 26.9 4H24C10.7 4 0 13.3 0 26.6zM176 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm320 0a48 48 0 1 0 0-96 48 48 0 1 0 0 96z'/></svg>">
 
 <!-- Fixed Asset Path for ngrok / HTTP & HTTPS -->
-<link rel="stylesheet" href="<?php echo e(secure_asset('css/style.css')); ?>?v=20260908b">
+<link rel="stylesheet" href="<?php echo e(asset('css/style.css')); ?>?v=20260908b">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -157,7 +157,7 @@
 </script>
 
 <!-- Fixed JS Asset Path for ngrok -->
-<script src="<?php echo e(secure_asset('js/app.js')); ?>"></script>
+<script src="<?php echo e(asset('js/app.js')); ?>"></script>
 <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 </html><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/layouts/app.blade.php ENDPATH**/ ?>
