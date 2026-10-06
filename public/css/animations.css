@@ -1,0 +1,133 @@
+/* ============================================================
+   MINI MART — hover / click / entrance animations
+   Loaded after style.css. Safe to delete this file to remove all of it.
+   ============================================================ */
+:root{
+  --mm-ease: cubic-bezier(.2,.7,.2,1);
+  --mm-spring: cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ---------- smooth transitions everywhere ---------- */
+a, button, .btn, input, select, textarea, label.radio-pill, .radio-pill,
+.nav-links a, .side-link, .cat-card, .cat-item, .product-card, .deal-card,
+.why-card, .testi-card, .promo-card, .kpi-card, .panel-card, .stat-card,
+.contact-info-card, .head-cart, .mini-link, .icon-btn, .btn-icon{
+  transition: transform .25s var(--mm-ease), box-shadow .25s var(--mm-ease),
+              background-color .2s ease, color .2s ease, border-color .2s ease,
+              opacity .2s ease, filter .2s ease;
+}
+
+/* ---------- buttons: hover lift, press-down ---------- */
+.btn:hover, .flash-btn:hover, .icon-btn:hover, .btn-icon:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(20,60,35,.22);
+}
+.btn-primary:hover, .btn-accent:hover{ filter: brightness(1.08); }
+.btn-outline:hover{ background: var(--brand-soft, #e8f7ee); }
+.btn:active, .add-btn:active, .deal-add:active, .flash-btn:active,
+.icon-btn:active, .btn-icon:active, .cat-scroll-btn:active, .qty-control button:active{
+  transform: scale(.94) !important;
+  box-shadow: none;
+  transition-duration: .08s;
+}
+.add-btn:hover, .deal-add:hover{ transform: translateY(-2px) scale(1.04); box-shadow: 0 8px 16px rgba(20,60,35,.22); }
+.add-btn:hover i, .deal-add:hover i, .btn:hover i{ animation: mmWiggle .5s ease; }
+
+.cat-scroll-btn:hover{ transform: scale(1.12); }
+.qty-control button:hover{ background: var(--brand-soft, #e8f7ee); color: var(--brand-dark, #1b5e3a); }
+
+/* ---------- cards: lift + image zoom ---------- */
+.product-card:hover, .deal-card:hover, .why-card:hover, .testi-card:hover,
+.contact-info-card:hover, .kpi-card:hover, .panel-card:hover, .stat-card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 16px 30px rgba(20,60,35,.16);
+}
+.product-media img, .deal-media img, .promo-media img, .cat-card .cat-photo img{
+  transition: transform .5s var(--mm-ease);
+}
+.deal-media{ overflow: hidden; }
+.product-card:hover .product-media img,
+.deal-card:hover .deal-media img{ transform: scale(1.1); }
+.promo-card:hover .promo-media img{ transform: scale(1.06); }
+.promo-card:hover{ transform: translateY(-4px); box-shadow: 0 16px 30px rgba(20,60,35,.18); }
+
+.cat-card:hover .cat-photo img{ transform: scale(1.15); }
+.cat-card:hover .cat-name{ color: var(--brand, #17a34a); }
+.cat-card:active{ transform: translateY(-1px) scale(.96); }
+.why-card:hover .why-icon, .contact-info-card:hover .contact-icon{ animation: mmPop .5s var(--mm-spring); }
+
+/* ---------- navigation ---------- */
+.nav-links a:hover{ transform: translateY(-1px); }
+.nav-links a:active{ transform: scale(.95); }
+.head-cart:hover .glyph, .mini-link:hover .glyph{ animation: mmWiggle .6s ease; }
+.mini-link:active{ transform: scale(.95); }
+.brand:hover{ transform: scale(1.03); }
+.brand:active{ transform: scale(.97); }
+
+/* ---------- admin sidebar & tables ---------- */
+.side-link:hover{ transform: translateX(5px); }
+.side-link:active{ transform: translateX(2px) scale(.98); }
+.admin-table tbody tr, .order-table tbody tr{ transition: background-color .2s ease, transform .2s ease; }
+.admin-table tbody tr:hover, .order-table tbody tr:hover{ background: rgba(23,163,74,.07); }
+
+/* ---------- form fields: focus glow ---------- */
+.field input:focus, .field select:focus, .field textarea:focus,
+.search-box input:focus, .head-search input:focus{
+  outline: none;
+  border-color: var(--brand, #17a34a);
+  box-shadow: 0 0 0 4px rgba(23,163,74,.15);
+}
+.field input:hover, .field select:hover, .field textarea:hover{ border-color: #b9d8c4; }
+.radio-pill:hover{ transform: translateY(-2px); box-shadow: 0 6px 14px rgba(20,60,35,.12); }
+.radio-pill:active{ transform: scale(.96); }
+.radio-pill input:checked + *, .radio-pill:has(input:checked){ animation: mmPop .35s var(--mm-spring); }
+
+/* ---------- click ripple (added by animations.js) ---------- */
+.mm-ripple{
+  position:absolute; border-radius:50%; pointer-events:none; transform: scale(0);
+  background: rgba(255,255,255,.55); animation: mmRipple .6s ease-out forwards;
+}
+.btn-outline .mm-ripple, .deal-add .mm-ripple, .qty-control .mm-ripple, .cat-scroll-btn .mm-ripple{ background: rgba(23,163,74,.25); }
+
+/* ---------- cart badge bump ---------- */
+.cart-count.mm-bump{ animation: mmBump .5s var(--mm-spring); }
+
+/* ---------- entrance animations (play once, then hover works normally) ---------- */
+.hero-inner > div:first-child{ animation: mmFadeUp .7s var(--mm-ease) backwards; }
+.hero2-media{ animation: mmFadeRight .8s var(--mm-ease) .1s backwards; }
+.hero-badge{ animation: mmPop .7s var(--mm-spring) .6s backwards; }
+.section-head, .promo-card, .why-card, .testi-card, .stat-card, .kpi-card, .panel-card{ animation: mmFadeUp .6s var(--mm-ease) backwards; }
+.product-card, .deal-card, .cat-card{ animation: mmFadeUp .55s var(--mm-ease) backwards; }
+.product-grid > :nth-child(2), .cat-grid8 > :nth-child(2){ animation-delay: .05s; }
+.product-grid > :nth-child(3), .cat-grid8 > :nth-child(3){ animation-delay: .10s; }
+.product-grid > :nth-child(4), .cat-grid8 > :nth-child(4){ animation-delay: .15s; }
+.product-grid > :nth-child(5), .cat-grid8 > :nth-child(5){ animation-delay: .20s; }
+.product-grid > :nth-child(6), .cat-grid8 > :nth-child(6){ animation-delay: .25s; }
+.product-grid > :nth-child(n+7), .cat-grid8 > :nth-child(n+7){ animation-delay: .30s; }
+.toast{ animation: mmToastIn .35s var(--mm-spring); }
+.admin-panel{ animation: mmFadeUp .35s var(--mm-ease); }
+
+/* ---------- keyframes ---------- */
+@keyframes mmFadeUp   { from{ opacity:0; transform: translateY(22px); } to{ opacity:1; transform:none; } }
+@keyframes mmFadeRight{ from{ opacity:0; transform: translateX(34px); } to{ opacity:1; transform:none; } }
+@keyframes mmPop      { 0%{ transform: scale(.6); opacity:0; } 60%{ transform: scale(1.15); opacity:1; } 100%{ transform: scale(1); } }
+@keyframes mmWiggle   { 0%,100%{ transform: rotate(0); } 25%{ transform: rotate(-14deg); } 50%{ transform: rotate(10deg); } 75%{ transform: rotate(-6deg); } }
+@keyframes mmBump     { 0%{ transform: scale(1); } 40%{ transform: scale(1.7); } 100%{ transform: scale(1); } }
+@keyframes mmRipple   { to{ transform: scale(4); opacity:0; } }
+@keyframes mmToastIn  { from{ opacity:0; transform: translateY(18px) scale(.95); } to{ opacity:1; transform:none; } }
+
+/* ---------- respect users who turn animations off ---------- */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* ============================================================
+   REPORTS PAGE — chart hover polish + number glow
+   ============================================================ */
+.chart-box .bar{ transition: filter .2s ease, opacity .2s ease; }
+.chart-box g:hover .bar{ filter: brightness(1.12) saturate(1.1); }
+.chart-box .dotpt{ transition: r .2s var(--mm-spring), stroke-width .2s ease; cursor: pointer; }
+.chart-box g:hover .dotpt{ r: 8px; stroke-width: 4; }
+.chart-box svg text{ transition: fill .2s ease; }
+.kpi-value{ transition: color .3s ease; font-variant-numeric: tabular-nums; }
+.kpi-value.mm-counting{ color: var(--brand, #17a34a); }

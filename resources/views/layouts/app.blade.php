@@ -10,6 +10,7 @@
 
 <!-- Fixed Asset Path for ngrok / HTTP & HTTPS -->
 <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=20260908b">
+<link rel="stylesheet" href="{{ asset('css/animations.css') }}?v=1">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -158,6 +159,7 @@
 
 <!-- Fixed JS Asset Path for ngrok -->
 <script src="{{ asset('js/app.js') }}"></script>
+<script src="{{ asset('js/animations.js') }}?v=1"></script>
 @stack('scripts')
 </body>
 </html>
