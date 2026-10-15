@@ -94,6 +94,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('/api/promotions/{promotion}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
 
     Route::post('/api/orders/{order}/approve', [OrderController::class, 'approve'])->name('orders.approve');
+    Route::post('/api/orders/{order}/reject', [OrderController::class, 'reject'])->name('orders.reject'); // <-- Added Reject Route
     Route::post('/api/orders/{order}/deliver', [OrderController::class, 'deliver'])->name('orders.deliver');
     Route::post('/api/orders/{order}/assign', [OrderController::class, 'assign'])->name('orders.assign');
 

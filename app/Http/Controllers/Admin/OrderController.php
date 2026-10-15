@@ -17,6 +17,13 @@ class OrderController extends Controller
         return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
     }
 
+    public function reject(Order $order): JsonResponse
+    {
+        $order->update(['status' => 'rejected']);
+
+        return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
+    }
+
     public function deliver(Order $order): JsonResponse
     {
         $order->update(['status' => 'done']);

@@ -154,11 +154,9 @@ function editProduct(id){
   const p = adminProducts.find(x => x.id === id);
   if (!p) return;
 
-  // 1. Remove existing edit modal if present
   let modal = document.getElementById("admin-edit-product-modal");
   if (modal) modal.remove();
 
-  // 2. Create Modal HTML
   modal = document.createElement("div");
   modal.id = "admin-edit-product-modal";
   modal.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999;";
@@ -204,7 +202,6 @@ function editProduct(id){
 
   document.body.appendChild(modal);
 
-  // 3. Handle Form Submission & API Call
   document.getElementById("edit-product-form").addEventListener("submit", function(e) {
     e.preventDefault();
     
@@ -251,9 +248,12 @@ function renderOrdersTable(){
       <td>${o.items}</td>
       <td>${money(o.total)}</td>
       <td>${o.mode}</td>
-      <td><span class="status ${o.status}">${o.status === "pending" ? "Pending" : o.status === "out" ? "Out for delivery" : "Delivered"}</span></td>
+      <td><span class="status ${o.status}">${o.status === "pending" ? "Pending" : o.status === "out" ? "Out for delivery" : o.status === "rejected" ? "Rejected" : "Delivered"}</span></td>
       <td>
-        ${o.status === "pending" ? `<button class="btn btn-small btn-primary" onclick="approveDelivery(${o.id})">Approve delivery</button>` : ""}
+        ${o.status === "pending" ? `
+          <button class="btn btn-small btn-primary" onclick="approveDelivery(${o.id})">Approve delivery</button>
+          <button class="btn btn-small btn-danger" onclick="rejectOrder(${o.id})" style="margin-left: 4px;">Reject</button>
+        ` : ""}
         ${o.status === "out" ? `<button class="btn btn-small" onclick="markDelivered(${o.id})">Mark delivered</button>` : ""}
       </td>
     </tr>
@@ -265,6 +265,15 @@ function approveDelivery(id){
   renderAll();
   flashAlert(`Order #${id} approved — customer ${o.customer} has been notified.`);
   api(`${ROUTES.orders}/${id}/approve`, { method: "POST" });
+}
+function rejectOrder(id){
+  const o = orders.find(x => x.id === id);
+  if(!o) return;
+  if(!confirm(`Are you sure you want to reject order #${id}?`)) return;
+  o.status = "rejected";
+  renderAll();
+  flashAlert(`Order #${id} has been rejected.`);
+  api(`${ROUTES.orders}/${id}/reject`, { method: "POST" });
 }
 function markDelivered(id){
   const o = orders.find(x=>x.id===id);
@@ -286,7 +295,7 @@ function activeDeliveryCount(vehicle){
 }
 function renderStaffPanel(){
   const body = document.getElementById("staff-body");
-  if(!body) return; // panel not in DOM yet
+  if(!body) return;
 
   document.getElementById("staff-empty").style.display = deliveryStaff.length ? "none" : "block";
   document.getElementById("staff-count-note").textContent = `${deliveryStaff.length} staff`;
@@ -364,7 +373,7 @@ function editStaff(id){
   s.phone = phone.trim() || s.phone;
   const oldVehicle = s.vehicle;
   s.vehicle = vehicle.trim() || s.vehicle;
-  orders.forEach(o => { if(o.mode === oldVehicle) o.mode = s.vehicle; }); // keep assigned orders pointing at this staffer
+  orders.forEach(o => { if(o.mode === oldVehicle) o.mode = s.vehicle; });
   renderAll();
   api(`${ROUTES.staff}/${id}`, { method: "PUT", body: JSON.stringify({ name: s.name, phone: s.phone, vehicle: s.vehicle }) });
 }
@@ -407,7 +416,7 @@ function renderCustomersTable(){
   `).join("");
 }
 
-/* ---------- Messages panel (customer contact-form -> admin inbox) ---------- */
+/* ---------- Messages panel ---------- */
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 }
@@ -486,7 +495,7 @@ function deleteMessage(id){
   api(`${ROUTES.messages}/${id}`, { method: "DELETE" });
 }
 
-/* ---------- Inventory / Stock management panel ---------- */
+/* ---------- Inventory panel ---------- */
 function stockStatus(qty){
   if(qty < settings.lowStockThreshold) return { cls:"need", label:"Need to Order" };
   if(qty < settings.lowStockThreshold * 2) return { cls:"low", label:"Low Stock" };
@@ -533,7 +542,8 @@ function exportInventory(){
   a.download = "minimart-stock.csv";
   a.click();
 }
-/* ---------- Purchase Orders panel (manual — nothing here is auto-generated) ---------- */
+
+/* ---------- Purchase Orders panel ---------- */
 function populatePOProductSelect(){
   const sel = document.getElementById("po-line-product");
   if(!sel) return;
@@ -782,7 +792,6 @@ function bindTip(el, onClick){
   el.onclick = onClick ? (e => { const t = e.target.closest("[data-key]"); if(t) onClick(t.dataset.key); }) : null;
 }
 
-/* vertical bars */
 function drawBarChart(elId, items, opts = {}){
   const el = document.getElementById(elId); if(!el) return;
   if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
@@ -790,7 +799,7 @@ function drawBarChart(elId, items, opts = {}){
   const m = { t:26, r:10, b:34, l:opts.left || 48 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
   const fmt = opts.format || (v => v);
   const rawMax = Math.max(...items.map(i => i.value), 1);
-  const fixed = opts.minMax && rawMax <= opts.minMax;          // e.g. always show $0 - $1,000
+  const fixed = opts.minMax && rawMax <= opts.minMax;
   const ticks = fixed ? 5 : 4;
   const max = fixed ? opts.minMax : niceMax(rawMax);
   const slot = iw / items.length, bw = Math.min(slot * 0.6, opts.maxBar || 46);
@@ -814,7 +823,6 @@ function drawBarChart(elId, items, opts = {}){
   bindTip(el, opts.onClick);
 }
 
-/* line chart (area + points) */
 function drawLineChart(elId, items, opts = {}){
   const el = document.getElementById(elId); if(!el) return;
   if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
@@ -847,7 +855,6 @@ function drawLineChart(elId, items, opts = {}){
   bindTip(el, opts.onClick);
 }
 
-/* horizontal bars, with an optional threshold line */
 function drawHBarChart(elId, items, opts = {}){
   const el = document.getElementById(elId); if(!el) return;
   if(!items.length){ el.innerHTML = '<div class="bar-empty">No data yet</div>'; return; }
@@ -877,7 +884,6 @@ function drawHBarChart(elId, items, opts = {}){
   bindTip(el);
 }
 
-/* ---- data helpers ---- */
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function monthKey(iso){
   const d = iso ? new Date(iso) : null;
@@ -937,7 +943,6 @@ function renderChartPO(){
       Object.keys(map).map(k => ({ key:k, label:k, value:+map[k].value.toFixed(2), tip:`${k} · ${map[k].count} order${map[k].count === 1 ? "" : "s"}` })),
       { ...opts, onClick:k => setPOVendor(k) });
   } else {
-    // one vendor selected: show each of its purchase orders
     drawBarChart("chart-po",
       live.slice().sort((a, b) => a.id - b.id).map(po => ({ key:"po" + po.id, label:"PO #" + po.id, value:+po.totalCost.toFixed(2), tip:`${po.supplier} · PO #${po.id} · ${po.status}` })),
       opts);
@@ -948,12 +953,11 @@ window.addEventListener("resize", () => {
   if(panel && panel.style.display !== "none") renderReports();
 });
 
-/* ---- Export invoices to Excel (.xlsx) ---- */
 function exportInvoicesExcel(){
   const list = orders.filter(o => reportMonth === "all" || monthKey(o.placedAt) === reportMonth)
                      .sort((a, b) => (b.placedAt || "").localeCompare(a.placedAt || ""));
   if(!list.length){ alert("No invoices for this month."); return; }
-  const statusName = { pending:"Pending", out:"Out for delivery", done:"Delivered" };
+  const statusName = { pending:"Pending", out:"Out for delivery", done:"Delivered", rejected:"Rejected" };
   const fmtDate = iso => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` : ""; };
   const total = list.reduce((s, o) => s + o.total, 0);
   const invoices = [["Invoice #","Date","Customer","Items","Total ($)","Status","Delivery mode"]]
@@ -966,7 +970,7 @@ function exportInvoicesExcel(){
     { name:"Monthly summary", rows:summary, widths:[16,10,12,10] }
   ], `minimart-invoices-${reportMonth === "all" ? "all-months" : reportMonth}.xlsx`);
 }
-/* ---- Export stock value (Excel) ---- */
+
 function exportStockExcel(){
   const cats = {};
   adminProducts.forEach(p => { const c = cats[p.cat] = cats[p.cat] || { n:0, value:0 }; c.n++; c.value += p.price * p.qty; });
@@ -981,7 +985,6 @@ function exportStockExcel(){
   ], "minimart-stock-value.xlsx");
 }
 
-/* ---- Export purchase orders (Excel) ---- */
 function exportPOExcel(){
   const list = filteredPOs();
   if(!list.length){ alert("No purchase orders for this vendor."); return; }
@@ -1008,7 +1011,6 @@ function exportReport(){
   a.click();
 }
 
-/* ---------- Discount low-stock items (Settings panel) ---------- */
 function getSalePrice(p){
   return p.discountPercent ? +(p.price * (1 - p.discountPercent / 100)).toFixed(2) : p.price;
 }
@@ -1017,7 +1019,7 @@ function lowStockProducts(){
 }
 function renderDiscountPanel(){
   const select = document.getElementById("discount-product");
-  if(!select) return; // panel not in DOM yet
+  if(!select) return;
 
   const all = [...adminProducts].sort((a,b)=>a.name.localeCompare(b.name));
   const current = select.value;
@@ -1072,7 +1074,6 @@ function removeDiscount(id){
   api(`${ROUTES.products}/${id}/discount`, { method: "DELETE" });
 }
 
-/* ---------- Settings panel ---------- */
 function saveSettings(e){
   e.preventDefault();
   settings.storeName = document.getElementById("set-name").value;
@@ -1100,14 +1101,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   showPanel("dashboard");
 });
 
-
-/* ============================================================
-   AUTO REFRESH — polls /admin/api/data and re-renders the live
-   panels without a page reload. Pauses while the tab is hidden
-   or while you are typing in a form, so nothing you are editing
-   gets wiped.
-   ============================================================ */
-const AUTO_REFRESH_MS = 100;   // change to taste (10000 = 10 seconds)
+const AUTO_REFRESH_MS = 10000; // <-- Changed from 100 to 10000 (10 seconds)
 let autoRefreshBusy = false;
 
 function isUserEditing(){
@@ -1129,7 +1123,6 @@ function applyServerData(d){
   purchaseOrders = d.purchaseOrders.map(po => ({ ...po, items: po.items.map(i => ({ ...i })) }));
   promotions     = d.promotions.map(p => ({ ...p, productIds: [...p.productIds], productNames: [...p.productNames] }));
 
-  // data-driven views only (skip form/select builders so inputs keep their values)
   renderDashboard();
   renderOrdersTable();
   renderStaffPanel();
@@ -1155,11 +1148,11 @@ function refreshAdminData(){
     cache: "no-store",
   })
     .then(r => {
-      if (r.status === 401 || r.status === 419) { window.location.reload(); return null; } // session expired
+      if (r.status === 401 || r.status === 419) { window.location.reload(); return null; }
       return r.ok ? r.json() : null;
     })
     .then(d => { if (d) applyServerData(d); })
-    .catch(() => {})                       // network blip — try again next tick
+    .catch(() => {})
     .finally(() => { autoRefreshBusy = false; });
 }
 

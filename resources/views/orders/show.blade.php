@@ -2,7 +2,6 @@
 
 @section('content')
 <style>
-
    /* Back Button Styling */
     .btn-back {
   display: inline-flex;
@@ -17,7 +16,7 @@
   border: 1px solid #e2e8f0;
   text-decoration: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  margin-bottom: 16px; /* Ensures clear spacing above the title */
+  margin-bottom: 16px;
   transition: all 0.2s ease;
 }
 
@@ -82,34 +81,30 @@
     position: relative;
   }
 
-  /* Individual step item */
   .step-item {
     position: relative;
     z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
-    flex: 1; /* Equal spacing across nodes */
+    flex: 1;
   }
 
-  /* Base track segment connecting steps */
   .step-item:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 21px; /* Vertically aligns with center of 42px circle */
-    left: 50%; /* Starts at center of current node */
-    width: 100%; /* Spans to center of next node */
+    top: 21px;
+    left: 50%;
+    width: 100%;
     height: 3px;
-    background-color: #e2e8f0; /* Default gray track */
+    background-color: #e2e8f0;
     z-index: 1;
   }
 
-  /* Active green track segment */
   .step-item.line-active:not(:last-child)::after {
-    background-color: #10b981; /* Turns green when active */
+    background-color: #10b981;
   }
 
-  /* Node layout */
   .step-node {
     width: 42px;
     height: 42px;
@@ -144,7 +139,6 @@
     word-break: break-word;
   }
 
-  /* Order Item Row & Fixed Product Image Styling */
   .item-row {
     display: flex;
     align-items: center;
@@ -181,7 +175,6 @@
     color: #64748b;
   }
 
-  /* Info Table Rows */
   .info-row {
     display: flex;
     justify-content: space-between;
@@ -203,7 +196,25 @@
     padding-top: 12px;
   }
 
-  /* Responsive Fixes */
+  /* Print Styles */
+  @media print {
+    header.site, footer.site, .btn-back, .no-print {
+      display: none !important;
+    }
+    body {
+      background: #ffffff !important;
+    }
+    .web-order-container {
+      max-width: 100% !important;
+      padding: 0 !important;
+    }
+    .order-card {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 10px 0 !important;
+    }
+  }
+
   @media (max-width: 640px) {
     .step-label {
       font-size: 11px;
@@ -229,14 +240,15 @@
     ? 'Truck' . ($order->truck_number ? ' (' . $order->truck_number . ')' : '')
     : 'Motorcycle';
 @endphp
+
     {{-- Top Navigation & Order Header --}}
     <div class="order-header-wrapper mb-4">
         {{-- Back Button --}}
         <div class="mb-3">
             <a href="{{ url()->previous() != url()->current() ? url()->previous() : route('orders.index') }}" class="btn-back">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span>Back to Orders</span>
-        </a>
+              <i class="fa-solid fa-arrow-left"></i>
+              <span>Back to Orders</span>
+            </a>
         </div>
 
         {{-- Order Info & Status Row --}}
@@ -248,17 +260,19 @@
                 </p>
             </div>
             
-            {{-- Status Badge --}}
-            <div id="order-badge-live" data-live>
-                <span class="badge-status {{ $step == 3 ? 'status-delivered' : 'status-active' }}">
-                    {{ ucfirst($order->status_label ?? $order->status ?? 'Pending') }}
-                </span>
+            <div class="d-flex align-items-center gap-2">
+                {{-- Status Badge --}}
+                <div id="order-badge-live" data-live>
+                    <span class="badge-status {{ $step == 3 ? 'status-delivered' : 'status-active' }}">
+                        {{ ucfirst($order->status_label ?? $order->status ?? 'Pending') }}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
 
     {{-- Stepper Progress Card --}}
-    <div class="order-card" id="order-stepper-live" data-live>
+    <div class="order-card no-print" id="order-stepper-live" data-live>
         <div class="card-header-title">
             <i class="fa-solid fa-truck-fast text-success"></i> Delivery Status
         </div>
@@ -283,7 +297,7 @@
                 </span>
             </div>
 
-            <!-- Step 3 (No line after step 3) -->
+            <!-- Step 3 -->
             <div class="step-item">
                 <div class="step-node {{ $step >= 3 ? 'active' : '' }}">
                     <i class="fa-solid fa-house-circle-check"></i>
@@ -293,7 +307,7 @@
         </div>
     </div>
 
-    {{-- 2. 2-Column Grid Layout --}}
+    {{-- 2-Column Grid Layout --}}
     <div class="row">
         
         {{-- Left: Order Items Column --}}
@@ -373,14 +387,25 @@
                 @endif
             </div>
 
-            {{-- Payment Card --}}
+            {{-- Payment Card with View Invoice Button --}}
             <div class="order-card">
-                <div class="card-header-title">
-                    <i class="fa-solid fa-receipt text-success"></i> Payment Summary
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div class="card-header-title mb-0" style="margin-bottom: 0 !important;">
+                        <i class="fa-solid fa-receipt text-success"></i> Payment Summary
+                    </div>
+                    
+                    {{-- View Invoice Button --}}
+                    <button type="button" 
+                            onclick="openInvoiceModal()" 
+                            class="btn btn-sm btn-outline-success no-print" 
+                            style="font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: 1.5px solid #10b981; color: #065f46; background: #d1fae5; cursor: pointer;">
+                        <i class="fa-solid fa-file-invoice me-1"></i> View Invoice
+                    </button>
                 </div>
+
                 <div class="info-row">
                     <span class="info-label">Payment Method</span>
-                    <span class="info-value">{{ strtoupper($order->payment_method ?: 'ABA PAY') }}</span>
+                    <span class="info-value">{{ strtoupper($order->payment_method ?: 'CASH ON DELIVERY') }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Subtotal</span>
@@ -405,4 +430,127 @@
     </div>
 
 </div>
+
+{{-- Invoice Modal Popup --}}
+<div id="invoiceModal" class="no-print" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; border-radius: 12px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+<!--         
+        {{-- Modal Header --}}
+        <div style="padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+            <h5 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 16px;">
+                <i class="fa-solid fa-file-invoice text-success me-2"></i> Invoice #{{ $order->id }}
+            </h5>
+            <button onclick="closeInvoiceModal()" style="border: none; background: transparent; font-size: 22px; cursor: pointer; color: #64748b;">&times;</button>
+        </div> -->
+
+        {{-- Printable Invoice Body matching reference style --}}
+        <div id="printableInvoice" style="padding: 32px; font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #000;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0 0 2px 0; font-weight: 800; font-size: 26px; letter-spacing: -0.5px;">
+                        <span style="color: #0f172a;">Mini</span><span style="color: #e11d48;">Mart</span>
+                    </h3>
+                    <div style="color: #64748b; font-size: 14px;">Veng Sreng Blvd, Phnom Penh</div>
+                </div>
+                <div style="text-align: right;">
+                    <h4 style="margin: 0 0 2px 0; font-weight: 800; color: #0f172a; font-size: 18px;">Invoice #{{ $order->id }}</h4>
+                    <div style="color: #64748b; font-size: 13px;">{{ $order->created_at ? $order->created_at->format('D, M d, Y, g:i A') : 'N/A' }}</div>
+                </div>
+            </div>
+
+            <div style="border-bottom: 1px solid #d1d5db; margin-bottom: 20px;"></div>
+
+            <div style="margin-bottom: 24px; font-size: 14.5px; color: #000;">
+                <strong>Deliver via:</strong> {{ ucfirst($order->transport_type ?: 'Truck') }} &middot; 
+                <strong>Pay by:</strong> {{ ucwords(str_replace('_', ' ', $order->payment_method ?: 'Cash on delivery')) }}
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14.5px;">
+                <thead>
+                    <tr>
+                        <th style="padding: 10px 0; text-align: left; color: #000; font-weight: 700;">Item</th>
+                        <th style="padding: 10px 0; text-align: center; color: #000; font-weight: 700;">Qty</th>
+                        <th style="padding: 10px 0; text-align: right; color: #000; font-weight: 700;">Price</th>
+                        <th style="padding: 10px 0; text-align: right; color: #000; font-weight: 700;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($order->items as $item)
+                    @php
+                        $pName = $item->product->name ?? $item->product_name ?? 'Product';
+                        $pQty = (float)($item->qty ?? 1);
+                        $pPrice = (float)($item->price ?? ($item->product->salePrice ?? $item->product->price ?? 0));
+                        $pUnit = $item->unit ?? $item->product->unit ?? '';
+                        $lineTotal = $pPrice * $pQty;
+                    @endphp
+                    <tr>
+                        <td style="padding: 12px 0; color: #000;">{{ $pName }}</td>
+                        <td style="padding: 12px 0; text-align: center; color: #000;">{{ $pQty }} {{ $pUnit }}</td>
+                        <td style="padding: 12px 0; text-align: right; color: #000;">${{ number_format($pPrice, 2) }}</td>
+                        <td style="padding: 12px 0; text-align: right; color: #000;">${{ number_format($lineTotal, 2) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <div style="border-bottom: 1px solid #d1d5db; margin-bottom: 16px;"></div>
+
+            <div style="font-size: 14.5px;">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #000;">
+                    <span>Items subtotal</span>
+                    <span>${{ number_format($order->subtotal ?? 0, 2) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #000;">
+                    <span>Delivery Fee (10%)</span>
+                    <span>${{ number_format($order->delivery_fee ?? 0, 2) }}</span>
+                </div>
+            </div>
+
+            <div style="border-bottom: 1px solid #d1d5db; margin: 16px 0;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 20px; color: #000; padding-top: 4px;">
+                <span>Total paid</span>
+                <span>${{ number_format($order->total ?? 0, 2) }}</span>
+            </div>
+        </div>
+
+        {{-- Modal Footer Actions (Download PDF + Print) --}}
+        <div style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+            <button onclick="closeInvoiceModal()" style="padding: 8px 18px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer;">
+                Close
+            </button>
+            <div style="display: flex; gap: 10px;">
+                {{-- Download PDF Button --}}
+                <button onclick="printModalInvoice()" style="padding: 8px 18px; border: 1.5px solid #10b981; background: #ffffff; color: #065f46; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-download"></i> Download PDF
+                </button>
+                {{-- Print Button --}}
+                <button onclick="printModalInvoice()" style="padding: 8px 20px; border: none; background: #1E5C34; color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-print"></i> Print Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Vanilla JavaScript to Control Modal Opening and Printing --}}
+<script>
+function openInvoiceModal() {
+    document.getElementById('invoiceModal').style.display = 'flex';
+}
+
+function closeInvoiceModal() {
+    document.getElementById('invoiceModal').style.display = 'none';
+}
+
+function printModalInvoice() {
+    var printContents = document.getElementById('printableInvoice').innerHTML;
+    var originalContents = document.body.innerHTML;
+    
+    document.body.innerHTML = '<div style="padding: 20px;">' + printContents + '</div>';
+    window.print();
+    document.body.innerHTML = originalContents;
+    window.location.reload();
+}
+</script>
 @endsection

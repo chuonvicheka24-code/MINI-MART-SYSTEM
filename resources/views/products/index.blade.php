@@ -8,26 +8,20 @@
   <div class="wrap">
     <div class="crumb"><a href="{{ route('home') }}">Home</a> &nbsp;›&nbsp; <span id="crumb-cat">All Products</span></div>
 
-    <div class="products-layout">
-      <aside class="filter-card">
-        <h4>Categories</h4>
-        <ul class="filter-list" id="filter-list"></ul>
-      </aside>
-
-      <div>
-        <div class="products-toolbar">
-          <h2 id="result-label" style="margin:0; font-size:22px;">All Products</h2>
-          <select class="sort-select" id="sort-select">
-            <option value="pop">Sort by: Popularity</option>
-            <option value="new">Newest Arrivals</option>
-            <option value="low">Price: low to high</option>
-            <option value="high">Price: high to low</option>
-            <option value="name">Name: A–Z</option>
-          </select>
-        </div>
-        <div class="product-grid" id="grid"></div>
-        <p id="empty-msg" style="display:none; margin-top:24px;">No products match that search — try another category or clear the search box.</p>
+    {{-- Full-width container (products-layout removed) --}}
+    <div>
+      <div class="products-toolbar">
+        <h2 id="result-label" style="margin:0; font-size:22px;">All Products</h2>
+        <select class="sort-select" id="sort-select">
+          <option value="pop">Sort by: Popularity</option>
+          <option value="new">Newest Arrivals</option>
+          <option value="low">Price: low to high</option>
+          <option value="high">Price: high to low</option>
+          <option value="name">Name: A–Z</option>
+        </select>
       </div>
+      <div class="product-grid" id="grid"></div>
+      <p id="empty-msg" style="display:none; margin-top:24px;">No products match that search — try another category or clear the search box.</p>
     </div>
   </div>
 </section>
@@ -43,22 +37,15 @@
   let query = (params.get("q") || "").toLowerCase();
   let sort = params.get("sort") === "new" ? "new" : "pop";
 
-  document.getElementById("filter-list").innerHTML = [
-    `<li><a href="#" data-cat="All"><i class="fa-solid fa-border-all"></i> All Products</a></li>`,
-    ...CATEGORIES.map(c => `<li><a href="#" data-cat="${c}"><i class="fa-solid ${categoryIcon(c)}"></i> ${c}</a></li>`)
-  ].join("");
   document.getElementById("sort-select").value = sort;
 
   const grid = document.getElementById("grid");
   const emptyMsg = document.getElementById("empty-msg");
   const resultLabel = document.getElementById("result-label");
   const searchInput = document.getElementById("search-input");
-  searchInput.value = query;
+  if(searchInput) searchInput.value = query;
 
   function render(){
-    document.querySelectorAll("#filter-list a").forEach(a=>{
-      a.classList.toggle("active", a.dataset.cat === activeCat);
-    });
     let items = window.MM_PRODUCTS.filter(p => matchesCategory(p.cat, activeCat));
     if(query) items = items.filter(p => p.name.toLowerCase().includes(query));
 
@@ -101,12 +88,6 @@
     setTimeout(() => { btn.textContent = 'Add to Cart'; }, 1500);
   }
 
-  document.getElementById("filter-list").addEventListener("click", e=>{
-    const a = e.target.closest("a");
-    if(!a) return;
-    e.preventDefault();
-    activeCat = a.dataset.cat; render();
-  });
   document.getElementById("sort-select").addEventListener("change", e=>{ sort = e.target.value; render(); });
 
   render();

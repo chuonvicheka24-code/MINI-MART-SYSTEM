@@ -33,7 +33,10 @@
 
 <header class="site @yield('header-class')">
   <div class="wrap head-row">
-    <a href="{{ route('home') }}" class="brand"><span class="cart-emoji"><i class="fa-solid fa-cart-shopping"></i></span><div>Mini<span>Mart</span><small>FRESH · QUALITY · EVERYDAY</small></div></a>
+      <!-- Image Logo -->
+      <a href="{{ route('home') }}" class="brand">
+        <img src="{{ asset('Photo/minimartlogo.png') }}" alt="MiniMart Logo" style="height: 48px; width: auto; object-fit: contain;">
+      </a>
 
     <form class="head-search" id="search-form">
       <input type="text" id="search-input" placeholder="Search for products, categories…" aria-label="Search products">
@@ -57,7 +60,7 @@
           </div>
         @endif
 
-        <!-- Logout Form (Works for both Admin and Customer) -->
+        <!-- Logout Form -->
         <form action="{{ route('logout') }}" method="POST" style="margin:0;">
           @csrf
           <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
@@ -81,19 +84,81 @@
     </div>
   </div>
 
-  <div class="wrap nav-row">
-    <div class="cat-dropdown-wrap" tabindex="0">
-      <button class="cat-toggle" onclick="location.href='{{ route('products.index') }}'"><i class="fa-solid fa-bars"></i> Shop by Categories</button>
-      <div class="mega-dropdown" id="mega-cat-menu"></div>
+  {{-- Centered Navigation Bar --}}
+  <div class="wrap nav-row" style="display: flex; align-items: center; justify-content: center; gap: 32px; width: 100%;">
+    
+    {{-- Shop By Categories --}}
+    <div class="cat-dropdown-wrap" tabindex="0" style="position: relative;">
+      <button type="button" class="cat-toggle" onclick="toggleCatDropdown(event)" style="display: inline-flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-bars"></i> Shop by Categories
+      </button>
+      
+      <div class="mega-dropdown" id="mega-cat-menu" style="display: none; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; transform: translateY(10px); position: absolute; top: 100%; left: 0; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.12); border-radius: 16px; width: 360px; padding: 14px; z-index: 99999; border: 1px solid #e2e8f0; margin-top: 8px; grid-template-columns: 1fr 1fr; gap: 8px;">
+        
+        {{-- All Categories Button spanning both columns --}}
+        <a href="{{ route('products.index', ['cat' => 'All']) }}" style="grid-column: span 2; display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: #065f46; text-decoration: none; font-weight: 700; background: #d1fae5; border-radius: 10px; transition: all 0.2s;">
+          <i class="fa-solid fa-border-all text-success" style="font-size: 15px;"></i> All Categories
+        </a>
+
+        {{-- Dynamic Categories Loop --}}
+        @if(isset($categories) && count($categories) > 0)
+          @foreach($categories as $category)
+            @php
+              $catName = is_object($category) ? ($category->name ?? $category->slug) : $category;
+              $catIcon = isset($category->icon) && $category->icon ? $category->icon : 'fa-layer-group';
+            @endphp
+            <a href="{{ route('products.index', ['cat' => $catName]) }}" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #0f172a; text-decoration: none; font-size: 14px; font-weight: 600; border-radius: 10px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid {{ $catIcon }} text-success" style="font-size: 14px; width: 18px; text-align: center;"></i> 
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $catName }}</span>
+            </a>
+          @endforeach
+        @endif
+      </div>
     </div>
-    <nav class="nav-links">
+
+    <script>
+    function toggleCatDropdown(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('mega-cat-menu');
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'grid';
+            setTimeout(() => {
+                menu.style.opacity = '1';
+                menu.style.transform = 'translateY(0)';
+            }, 10);
+        } else {
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                menu.style.display = 'none';
+            }, 200);
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('mega-cat-menu');
+        const wrap = document.querySelector('.cat-dropdown-wrap');
+        if (menu && wrap && !wrap.contains(e.target)) {
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                menu.style.display = 'none';
+            }, 200);
+        }
+    });
+    </script>
+
+    {{-- Centered Links --}}
+    <nav class="nav-links" style="display: flex; align-items: center; justify-content: center; margin: 0; gap: 24px;">
       <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
       <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.index') ? 'active' : '' }}">Products ▾</a>
       <a href="{{ route('cart.index') }}" class="{{ request()->routeIs('cart.index') ? 'active' : '' }}">Order</a>
       <a href="{{ route('returns.index') }}" class="{{ request()->routeIs('returns.index') ? 'active' : '' }}">Returns Policy</a>
       <a href="{{ route('contact.index') }}" class="{{ request()->routeIs('contact.index') ? 'active' : '' }}">Contact Us</a>
     </nav>
-    <a href="{{ route('home') }}#flash-deals" class="flash-btn"><i class="fa-solid fa-bolt"></i> FLASH DEALS</a>
+
+    {{-- Flash Deals --}}
+    <a href="{{ route('home') }}#flash-deals" class="flash-btn" style="display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-bolt"></i> FLASH DEALS</a>
   </div>
 </header>
 
@@ -102,7 +167,9 @@
 <footer class="site @yield('header-class')">
   <div class="wrap">
     <div>
-      <h4><span class="cart-emoji"><i class="fa-solid fa-cart-shopping"></i></span> Mini Mart</h4>
+      <h4 style="display: flex; align-items: center; gap: 8px;">
+         <img src="{{ asset('Photo/minimartlogo.png') }}" alt="MiniMart Logo" style="height: 48px; width: auto; object-fit: contain;">
+      </h4>
       <p style="opacity:.85;">Your one-stop shop for fresh groceries and household essentials. Quality products, trusted by thousands.</p>
       <div class="announce-social">
         <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
@@ -153,11 +220,9 @@
   window.MM_CATEGORY_ICONS = @json($categories->pluck('icon', 'name'));
   window.MM_CATEGORY_IMAGES = @json($categories->pluck('image', 'name'));
   
-  // Inject global products if passed from controller/ViewShare
   window.MM_PRODUCTS = @json(isset($products) ? $products->map->toStorefrontArray() : []);
 </script>
 
-<!-- Fixed JS Asset Path for ngrok -->
 <script src="{{ asset('js/app.js') }}"></script>
 <script src="{{ asset('js/animations.js') }}?v=1"></script>
 @stack('scripts')
