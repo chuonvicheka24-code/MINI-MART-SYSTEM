@@ -448,7 +448,7 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 
 /* main header row 1: logo / search / account / cart */
 .head-row{ display:flex; align-items:center; gap:26px; padding: 16px 0; flex-wrap:wrap; }
-.head-search{ flex:1; display:flex; max-width: 560px; border:1.5px solid var(--line); border-radius: var(--radius-sm); overflow:hidden; }
+.head-search{ flex: 1 1 400px; display:flex; width: 100%; max-width: none !important; border:1.5px solid var(--line); border-radius: var(--radius-sm); overflow:hidden; }
 .head-search input{ flex:1; border:0; outline:0; padding:11px 16px; font-family:var(--font-body); font-size:14px; background: var(--bg); }
 .head-search select{ border:0; border-left:1.5px solid var(--line); background:var(--bg); padding:0 12px; font-size:13px; font-family:var(--font-body); color:var(--muted); }
 .head-search button{ background: var(--brand-dark); color:#fff; border:0; padding:0 20px; font-size:15px; }

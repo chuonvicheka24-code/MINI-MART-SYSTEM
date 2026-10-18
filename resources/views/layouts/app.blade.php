@@ -167,8 +167,13 @@
 <footer class="site @yield('header-class')">
   <div class="wrap">
     <div>
-      <h4 style="display: flex; align-items: center; gap: 8px;">
-         <img src="{{ asset('Photo/minimartlogo.png') }}" alt="MiniMart Logo" style="height: 48px; width: auto; object-fit: contain;">
+      <h4 style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span style="display: flex; align-items: center; justify-content: center; font-size: 28px; color: #80EF80;">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </span>
+        <span style="font-family: var(--font-display); font-size: 24px; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 4px;">
+          <span style="color: #04ff2a;">Mini</span><span style="color: #f7fff6;">Mart</span>
+        </span>
       </h4>
       <p style="opacity:.85;">Your one-stop shop for fresh groceries and household essentials. Quality products, trusted by thousands.</p>
       <div class="announce-social">
