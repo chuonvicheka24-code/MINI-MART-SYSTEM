@@ -15,7 +15,7 @@ class OrderController extends Controller
     {
         $order->update(['status' => 'out']);
 
-        $this->notify($order, 'out');
+        TelegramService::orderUpdate($order, 'out');
 
         return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
     }
@@ -29,9 +29,13 @@ class OrderController extends Controller
 
     public function deliver(Order $order): JsonResponse
     {
+        $alreadyDone = $order->status === 'done'; // may have been auto-completed on arrival
+
         $order->update(['status' => 'done']);
 
-        $this->notify($order, 'done');
+        if (! $alreadyDone) {
+            TelegramService::orderUpdate($order, 'done');
+        }
 
         return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
     }
@@ -50,32 +54,5 @@ class OrderController extends Controller
         }
 
         return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
-    }
-
-    /**
-     * Send a Telegram message when an order reaches step 2 (out) or step 3 (done).
-     */
-    private function notify(Order $order, string $step): void
-    {
-        $order->loadMissing('deliveryStaff');
-        $e = fn ($v) => TelegramService::e($v);
-
-        $head = $step === 'out'
-            ? "🚚 <b>Order #{$order->id} is OUT FOR DELIVERY</b>"
-            : "✅ <b>Order #{$order->id} was DELIVERED</b>";
-
-        $text = $head . "\n"
-            . "👤 {$e($order->customer_name)}\n"
-            . "📞 {$e($order->customer_phone)}\n"
-            . "📍 {$e($order->address)}\n"
-            . "🚛 {$e(ucfirst($order->transport_type))} {$e($order->truck_number)}\n";
-
-        if ($order->deliveryStaff) {
-            $text .= "🧑‍✈️ Driver: {$e($order->deliveryStaff->name)}\n";
-        }
-
-        $text .= "💰 Total: $" . number_format($order->total, 2);
-
-        TelegramService::send($text);
     }
 }

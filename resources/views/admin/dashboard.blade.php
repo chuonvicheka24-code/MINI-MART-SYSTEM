@@ -137,7 +137,8 @@
       <!-- ============ STAFF DELIVERY ============ -->
       <section class="admin-panel" id="panel-staff">
         <div class="admin-grid">
-          <div class="panel-card" style="max-width:480px;">
+          <div style="display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;">
+          <div class="panel-card" style="flex:0 1 480px; max-width:480px;">
             <h3>Add delivery staff</h3>
             <form onsubmit="addStaff(event)">
               <div class="field"><label for="staff-name">Full name</label><input id="staff-name" required></div>
@@ -168,6 +169,24 @@
               </div>
               <button class="btn btn-primary btn-block" type="submit">Add staff</button>
             </form>
+          </div>
+
+          <!-- Delivery price (flat fee per vehicle type) -->
+          <div class="panel-card" style="flex:1 1 280px; min-width:260px;">
+            <h3>Delivery price</h3>
+            <p class="form-note" style="margin-top:-6px; margin-bottom:14px;">Flat fee charged to the customer at checkout, by transport type.</p>
+            <form onsubmit="saveDeliveryPrices(event)">
+              <div class="field">
+                <label for="price-truck"><i class="fa-solid fa-truck"></i> Truck price ($)</label>
+                <input id="price-truck" type="number" step="0.01" min="0" required>
+              </div>
+              <div class="field">
+                <label for="price-moto"><i class="fa-solid fa-motorcycle"></i> Moto price ($)</label>
+                <input id="price-moto" type="number" step="0.01" min="0" required>
+              </div>
+              <button class="btn btn-primary btn-block" type="submit">Save prices</button>
+            </form>
+          </div>
           </div>
 
           <div class="panel-card">
@@ -562,6 +581,26 @@
 </script>
 <script src="{{ asset('js/xlsx-lite.js') }}"></script>
 <script src="{{ asset('js/admin.js') }}"></script>
+<script>
+  // Delivery price card (Staff Delivery page)
+  function saveDeliveryPrices(e){
+    e.preventDefault();
+    const truck = parseFloat(document.getElementById("price-truck").value);
+    const moto  = parseFloat(document.getElementById("price-moto").value);
+    if (isNaN(truck) || isNaN(moto) || truck < 0 || moto < 0) { flashAlert("Enter valid prices."); return; }
+    settings.truckPrice = truck;
+    settings.motoPrice  = moto;
+    flashAlert("Delivery prices saved.");
+    api(ROUTES.settings, {
+      method: "PUT",
+      body: JSON.stringify({ truck_price: truck, moto_price: moto }),
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function(){
+    document.getElementById("price-truck").value = Number(settings.truckPrice ?? 5).toFixed(2);
+    document.getElementById("price-moto").value  = Number(settings.motoPrice ?? 2).toFixed(2);
+  });
+</script>
 <script src="{{ asset('js/animations.js') }}?v=1"></script>
 <script src="{{ asset('js/report-animations.js') }}?v=1"></script>
 <script>

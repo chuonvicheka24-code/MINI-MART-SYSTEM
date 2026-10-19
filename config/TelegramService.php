@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -43,5 +44,29 @@ class TelegramService
     public static function e(?string $value): string
     {
         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+
+    /** Step 2 ("out") / Step 3 ("done") order message. */
+    public static function orderUpdate(Order $order, string $step): bool
+    {
+        $order->loadMissing('deliveryStaff');
+
+        $head = $step === 'out'
+            ? "🚚 <b>Order #{$order->id} is OUT FOR DELIVERY</b>"
+            : "✅ <b>Order #{$order->id} was DELIVERED</b>";
+
+        $text = $head . "\n"
+            . "👤 " . self::e($order->customer_name) . "\n"
+            . "📞 " . self::e($order->customer_phone) . "\n"
+            . "📍 " . self::e($order->address) . "\n"
+            . "🚛 " . self::e(ucfirst((string) $order->transport_type)) . ' ' . self::e($order->truck_number) . "\n";
+
+        if ($order->deliveryStaff) {
+            $text .= "🧑‍✈️ Driver: " . self::e($order->deliveryStaff->name) . "\n";
+        }
+
+        $text .= "💰 Total: $" . number_format($order->total, 2);
+
+        return self::send($text);
     }
 }

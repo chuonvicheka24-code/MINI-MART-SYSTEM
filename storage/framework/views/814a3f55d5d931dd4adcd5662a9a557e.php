@@ -169,7 +169,7 @@
         </div>
 
         <div class="summary-row" style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--muted); font-size:14px;">
-          <span>Estimated delivery (10%)</span>
+          <span></span>
           <span id="sum-delivery">$0.00</span>
         </div>
 
@@ -193,7 +193,7 @@
         <?php endif; ?>
         
         <p class="form-note" style="margin-top:12px; font-size:12px; color:var(--muted); text-align:center;">
-          Delivery fee is calculated as 10% of total cost and confirmed again at checkout.
+          Please confirm and processing delivery.
         </p>
       </div>
     </div>
@@ -334,10 +334,10 @@
     }).join("");
 
     const subtotal = (typeof cartSubtotal === 'function') ? cartSubtotal() : 0;
-    const delivery = subtotal * (window.DELIVERY_RATE || 0.1);
+    const delivery = 0; // delivery fee depends on Truck / Moto: it is added at checkout
     
     if (document.getElementById("sum-subtotal")) document.getElementById("sum-subtotal").textContent = money(subtotal);
-    if (document.getElementById("sum-delivery")) document.getElementById("sum-delivery").textContent = money(delivery);
+    if (document.getElementById("sum-delivery")) document.getElementById("sum-delivery").textContent = "At checkout";
     if (document.getElementById("sum-total")) document.getElementById("sum-total").textContent = money(subtotal + delivery);
     
     const checkoutBtn = document.getElementById("checkout-btn");

@@ -59,7 +59,8 @@ class CheckoutController extends Controller
                     $subtotal += $product->sale_price * $floatQty;
                 }
             }
-            $deliveryFee = round($subtotal * ($settings->delivery_rate / 100), 2);
+            // Flat fee set by the admin (Staff Delivery > Delivery price), by transport type.
+            $deliveryFee = round($data['transport_type'] === 'truck' ? $settings->truck_price : $settings->moto_price, 2);
 
             $order = Order::create([
                 'user_id' => $user->id,

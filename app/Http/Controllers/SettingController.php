@@ -15,6 +15,8 @@ class SettingController extends Controller
             'store_name' => 'nullable|string|max:150',
             'hours' => 'nullable|string|max:150',
             'delivery_rate' => 'nullable|numeric|min:0',
+            'truck_price' => 'nullable|numeric|min:0|max:9999',
+            'moto_price' => 'nullable|numeric|min:0|max:9999',
             'low_stock_threshold' => 'nullable|integer|min:0',
         ]);
 

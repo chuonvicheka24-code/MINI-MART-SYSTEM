@@ -60,7 +60,7 @@
       <div class="card">
         <h3 style="margin-bottom:14px;">Cost total</h3>
         <div class="summary-row"><span>Items subtotal</span><span id="sum-subtotal">$0.00</span></div>
-        <div class="summary-row"><span>Total delivery (10% of total cost)</span><span id="sum-delivery">$0.00</span></div>
+        <div class="summary-row"><span>Total delivery</span><span id="sum-delivery">$0.00</span></div>
         <div class="summary-row total"><span>Total cost</span><span id="sum-total">$0.00</span></div>
         <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="triggerCheckoutFlow()" id="confirm-btn">Confirm Delivery</button>
       </div>
@@ -223,11 +223,17 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
   window.MM_PRODUCTS = <?php echo json_encode(\App\Models\Product::all()->map->toStorefrontArray(), 15, 512) ?>;
+  window.MM_DELIVERY = <?php echo json_encode(['truck' => (float) \App\Models\Setting::current()->truck_price, 'moto' => (float) \App\Models\Setting::current()->moto_price], 512) ?>;
+
+  function selectedDeliveryFee(){
+    const type = document.querySelector('input[name="delivery"]:checked')?.value || 'truck';
+    return Number(window.MM_DELIVERY[type] ?? 0);
+  }
 
   function paintCheckoutSummary(){
     if (typeof cartSubtotal === 'function' && typeof cartLines === 'function') {
       const subtotal = cartSubtotal();
-      const delivery = subtotal * (window.DELIVERY_RATE || 0.1);
+      const delivery = selectedDeliveryFee();
       document.getElementById("sum-subtotal").textContent = money(subtotal);
       document.getElementById("sum-delivery").textContent = money(delivery);
       document.getElementById("sum-total").textContent = money(subtotal + delivery);
@@ -251,6 +257,7 @@
     document.querySelectorAll(".radio-pill").forEach(o => o.classList.remove("selected"));
     opt.classList.add("selected");
     opt.querySelector("input").checked = true;
+    paintCheckoutSummary();
   });
 
   let pinCode = "";
@@ -258,7 +265,7 @@
   function triggerCheckoutFlow(){
     const payMethod = document.getElementById("pay")?.value;
     const subtotal = (typeof cartSubtotal === 'function') ? cartSubtotal() : 4.20;
-    const delivery = subtotal * 0.1;
+    const delivery = selectedDeliveryFee();
     const totalStr = money(subtotal + delivery);
     
     document.getElementById("modal-total").textContent = totalStr;
@@ -370,7 +377,7 @@
       document.getElementById("inv-pay").textContent = payload.payment_method;
 
       const subtotal = (typeof cartSubtotal === 'function') ? cartSubtotal() : 4.20;
-      const delivery = subtotal * 0.10;
+      const delivery = Number(window.MM_DELIVERY[payload.transport_type] ?? 0);
       const total = subtotal + delivery;
 
       let itemsHtml = '';

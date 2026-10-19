@@ -194,6 +194,34 @@
     padding-top: 12px;
   }
 
+
+  /* ---------- Live delivery tracking map (Wownow-style) ---------- */
+  .track-wrap { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+  #track-map { width: 100%; height: 420px; background: #e5e7eb; }
+  .track-sheet {
+    position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 1100;
+    background: #fff; border-radius: 16px; padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  }
+  .track-eta { font-size: 17px; font-weight: 700; color: #0f172a; }
+  .track-sub { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+  .track-bar { height: 5px; background: #e2e8f0; border-radius: 99px; margin: 10px 0 12px; overflow: hidden; }
+  .track-bar > div { height: 100%; width: 0; background: #10b981; border-radius: 99px; transition: width .8s linear; }
+  .track-driver { display: flex; align-items: center; gap: 12px; }
+  .track-avatar {
+    width: 42px; height: 42px; border-radius: 50%; background: #d1fae5; color: #065f46;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .track-driver-name { font-weight: 700; font-size: 14.5px; color: #0f172a; }
+  .track-driver-veh { font-size: 12.5px; color: #64748b; }
+  .track-call {
+    margin-left: auto; width: 42px; height: 42px; border-radius: 50%; background: #10b981; color: #fff;
+    display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0;
+  }
+  .pin { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+  .pin-driver { font-size: 30px; }
+  @media (max-width: 640px) { #track-map { height: 360px; } }
+
   /* Print Styles */
   @media print {
     header.site, footer.site, .btn-back, .no-print {
@@ -305,6 +333,39 @@
                 <span class="step-label">Delivered</span>
             </div>
         </div>
+    </div>
+
+
+    
+    <?php
+      $mapQuery = trim(($order->address ?: $order->location ?: 'Phnom Penh') . ', Phnom Penh, Cambodia');
+      $driverName  = $order->deliveryStaff->name  ?? 'Delivery Staff';
+      $driverPhone = $order->deliveryStaff->phone ?? null;
+    ?>
+    <div class="order-card no-print" id="track-card" style="<?php echo e($step === 2 ? '' : 'display:none'); ?>">
+      <div class="card-header-title">
+        <i class="fa-solid fa-map-location-dot text-success"></i> Track Your Delivery
+      </div>
+      <div class="track-wrap">
+        <div id="track-map"></div>
+        <div class="track-sheet">
+          <div class="track-eta" id="track-eta">Finding route…</div>
+          <div class="track-sub" id="track-sub">Your order is on the way</div>
+          <div class="track-bar"><div id="track-progress"></div></div>
+          <div class="track-driver">
+            <div class="track-avatar"><i class="fa-solid <?php echo e($deliveryIcon); ?>"></i></div>
+            <div>
+              <div class="track-driver-name"><?php echo e($driverName); ?></div>
+              <div class="track-driver-veh"><?php echo e($deliveryLabel); ?></div>
+            </div>
+            <?php if($driverPhone): ?>
+              <a class="track-call" href="tel:<?php echo e(preg_replace('/\s+/', '', $driverPhone)); ?>" title="Call driver">
+                <i class="fa-solid fa-phone"></i>
+              </a>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
     </div>
 
     
@@ -557,4 +618,147 @@ function printModalInvoice() {
 }
 </script>
 <?php $__env->stopSection(); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  const ORDER_ID   = <?php echo e($order->id); ?>;
+  const STATUS_URL = <?php echo json_encode(route('orders.status'), 15, 512) ?>;
+  const ARRIVED_URL = <?php echo json_encode(route('orders.arrived', $order->id), 512) ?>;
+  const ADDRESS    = <?php echo json_encode($mapQuery, 15, 512) ?>;
+  const IS_TRUCK   = <?php echo json_encode($isTruck, 15, 512) ?>;
+
+  // Store location (lat, lng) — edit to your real store coordinates.
+  const STORE = [11.5527, 104.8337];
+
+  // 1 = real time. >1 makes the driver move faster so you can see it while testing.
+  const SPEED = 6;
+
+  const card = document.getElementById('track-card');
+  let step      = <?php echo e($step); ?>;
+  let startedAt = <?php echo e($step === 2 ? (optional($order->updated_at)->timestamp ?? 'null') : 'null'); ?>;
+  startedAt = startedAt ? startedAt * 1000 - (Date.now() - <?php echo e(now()->timestamp); ?> * 1000) : null; // fix client/server clock gap
+
+  let map = null, driver = null, route = [], cum = [], totalM = 0, totalSec = 0, timer = null;
+
+  const el = id => document.getElementById(id);
+  const pin = (emoji, cls) => L.divIcon({ className: '', html: '<div class="pin ' + (cls || '') + '">' + emoji + '</div>', iconSize: [30, 30], iconAnchor: [15, 28] });
+
+  async function geocode() {
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kh&q=' + encodeURIComponent(ADDRESS));
+      const j = await r.json();
+      if (j[0]) return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
+    } catch (e) {}
+    return [STORE[0] + 0.02, STORE[1] + 0.02]; // fallback so the demo still works
+  }
+
+  async function getRoute(a, b) {
+    try {
+      const u = 'https://router.project-osrm.org/route/v1/driving/' + a[1] + ',' + a[0] + ';' + b[1] + ',' + b[0] + '?overview=full&geometries=geojson';
+      const r = await fetch(u);
+      const j = await r.json();
+      if (j.routes && j.routes[0]) {
+        return { pts: j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]), sec: j.routes[0].duration };
+      }
+    } catch (e) {}
+    return { pts: [a, b], sec: 600 }; // straight line fallback
+  }
+
+  function pointAt(frac) {
+    const target = totalM * frac;
+    for (let i = 1; i < cum.length; i++) {
+      if (cum[i] >= target) {
+        const seg = cum[i] - cum[i - 1] || 1;
+        const t = (target - cum[i - 1]) / seg;
+        return [route[i - 1][0] + (route[i][0] - route[i - 1][0]) * t, route[i - 1][1] + (route[i][1] - route[i - 1][1]) * t];
+      }
+    }
+    return route[route.length - 1];
+  }
+
+  let arrivedSent = false;
+
+  async function completeDelivery() {
+    if (arrivedSent) return;
+    arrivedSent = true;
+    clearInterval(timer);
+    el('track-eta').textContent = 'Delivered 🎉';
+    el('track-sub').textContent = 'Your order has arrived. Enjoy!';
+    el('track-progress').style.width = '100%';
+    try {
+      const r = await fetch(ARRIVED_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-TOKEN': window.MM_CSRF, 'Accept': 'application/json' },
+      });
+      const d = await r.json();
+      if (d.status === 'done') { step = 3; setTimeout(() => location.reload(), 2500); return; }
+    } catch (e) {}
+    arrivedSent = false;            // server said "too early" or network hiccup: try again
+    timer = setInterval(tick, 3000);
+  }
+
+  function tick() {
+    if (!driver || !startedAt || arrivedSent) return;
+    const elapsed = (Date.now() - startedAt) / 1000 * SPEED;
+    const frac = Math.min(1, elapsed / totalSec);
+    driver.setLatLng(pointAt(frac));
+    el('track-progress').style.width = Math.round(frac * 100) + '%';
+    if (frac >= 1) { completeDelivery(); return; }
+    const minLeft = Math.max(1, Math.ceil((totalSec * (1 - frac)) / 60));
+    el('track-eta').textContent = 'Arriving in ' + minLeft + ' min';
+    el('track-sub').textContent = 'Your order is on the way';
+  }
+
+  async function startMap() {
+    if (map || typeof L === 'undefined') return;
+    card.style.display = '';
+    if (!startedAt) startedAt = Date.now();
+
+    map = L.map('track-map', { zoomControl: true, attributionControl: true }).setView(STORE, 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+    const dest = await geocode();
+    const r = await getRoute(STORE, dest);
+    route = r.pts; totalSec = r.sec;
+
+    cum = [0];
+    for (let i = 1; i < route.length; i++) cum[i] = cum[i - 1] + map.distance(route[i - 1], route[i]);
+    totalM = cum[cum.length - 1] || 1;
+
+    L.polyline(route, { color: '#10b981', weight: 6, opacity: .9 }).addTo(map);
+    L.marker(STORE, { icon: pin('🏪') }).addTo(map);
+    L.marker(dest,  { icon: pin('🏠') }).addTo(map);
+    driver = L.marker(route[0], { icon: pin(IS_TRUCK ? '🚚' : '🛵', 'pin-driver'), zIndexOffset: 1000 }).addTo(map);
+
+    map.fitBounds(L.polyline(route).getBounds(), { paddingTopLeft: [30, 30], paddingBottomRight: [30, 190] });
+    setTimeout(() => map.invalidateSize(), 200);
+
+    tick();
+    timer = setInterval(tick, 1000);
+  }
+
+  function stopMap() {
+    clearInterval(timer);
+    card.style.display = 'none';
+  }
+
+  async function poll() {
+    try {
+      const r = await fetch(STATUS_URL, { credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } });
+      const d = await r.json();
+      const st = d.orders && d.orders[ORDER_ID];
+      if (st === 'out' && step !== 2) { step = 2; startMap(); }
+      if (st === 'done' && step === 2) { step = 3; stopMap(); }
+    } catch (e) {}
+  }
+
+  if (step === 2) startMap();
+  setInterval(poll, 5000);
+})();
+</script>
+<?php $__env->stopPush(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\MINI-MART-SYSTEM\resources\views/orders/show.blade.php ENDPATH**/ ?>

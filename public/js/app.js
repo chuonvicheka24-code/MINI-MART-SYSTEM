@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
 const LIVE_REFRESH_MS = 15000;   // 15 seconds
 const _liveLast = {};
 
-function refreshLiveBlocks(){
+function refreshLiveBlocks(force){
   const blocks = document.querySelectorAll("[data-live][id]");
   if(!blocks.length || document.hidden) return;
 
@@ -181,8 +181,9 @@ function refreshLiveBlocks(){
         const fresh = doc.getElementById(el.id);
         if(!fresh) return;
         const next = fresh.innerHTML;
-        if(_liveLast[el.id] === undefined){ _liveLast[el.id] = next; return; } // first tick = baseline
-        if(_liveLast[el.id] !== next){
+        // first tick = baseline (unless we KNOW something changed: force = true)
+        if(_liveLast[el.id] === undefined && force !== true){ _liveLast[el.id] = next; return; }
+        if(force === true || _liveLast[el.id] !== next){
           el.innerHTML = next;
           _liveLast[el.id] = next;
         }
@@ -238,7 +239,7 @@ function pollOrderStatus(){
       }
       _orderSig = d.sig; _orderStates = d.orders;
 
-      if(document.querySelector("[data-live][id]")) refreshLiveBlocks(); // redraw in place
+      if(document.querySelector("[data-live][id]")) refreshLiveBlocks(true); // redraw in place (force: status really changed)
       mmToast(msg);
     })
     .catch(() => {});

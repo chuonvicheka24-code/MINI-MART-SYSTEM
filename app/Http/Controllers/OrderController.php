@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -90,5 +91,38 @@ class OrderController extends Controller
             200,
             ['Cache-Control' => 'no-store']
         );
+    }
+
+    /**
+     * Called by the tracking map when the (simulated) driver reaches the address.
+     * Marks the order delivered. Guarded: owner only, must be "out", and at least
+     * MIN_SECONDS since it went out so it can't be completed instantly.
+     */
+    public function arrived($id, Request $request): JsonResponse
+    {
+        $user  = $request->user();
+        $order = Order::findOrFail($id);
+
+        $ownsOrder = $order->user_id === $user->id
+            || ($order->user_id === null && (
+                $order->customer_email === $user->email
+                || $order->customer_phone === $user->phone
+            ));
+
+        abort_unless($ownsOrder, 403);
+
+        if ($order->status !== 'out') {
+            return response()->json(['status' => $order->status]);
+        }
+
+        $minSeconds = 20;
+        if ($order->updated_at && $order->updated_at->diffInSeconds(now()) < $minSeconds) {
+            return response()->json(['status' => $order->status, 'message' => 'Too early'], 422);
+        }
+
+        $order->update(['status' => 'done']);
+        TelegramService::orderUpdate($order, 'done');
+
+        return response()->json(['status' => 'done']);
     }
 }

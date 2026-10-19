@@ -34,6 +34,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/status', [CustomerOrderController::class, 'status'])->name('orders.status');
     Route::get('/orders/{id}', [CustomerOrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{id}/arrived', [CustomerOrderController::class, 'arrived'])->name('orders.arrived');
 });
 
 Route::get('/returns', function () {
