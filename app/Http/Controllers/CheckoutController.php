@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -103,6 +104,18 @@ class CheckoutController extends Controller
         });
 
         session()->forget(CartController::SESSION_KEY);
+
+        $e = fn ($v) => TelegramService::e($v);
+        $lines = $order->items->map(fn ($i) => '• ' . $e($i->product_name) . ' × ' . (float) $i->qty . ' = $' . number_format($i->line_total, 2))->implode("\n");
+        TelegramService::send(
+            "🛒 <b>New order #{$order->id}</b>\n"
+            . "👤 {$e($order->customer_name)}\n"
+            . "📞 {$e($order->customer_phone)}\n"
+            . "📍 {$e($order->location)} {$e($order->address)}\n"
+            . "💳 {$e($order->payment_method)}\n\n"
+            . $lines . "\n\n"
+            . "<b>Total: $" . number_format($order->total, 2) . "</b>"
+        );
 
         return response()->json([
             'message' => 'Order placed successfully!',

@@ -565,14 +565,55 @@
 <script src="<?php echo e(asset('js/animations.js')); ?>?v=1"></script>
 <script src="<?php echo e(asset('js/report-animations.js')); ?>?v=1"></script>
 <script>
-  const origDash = renderDashboard;
-  renderDashboard = function(){
-    origDash();
-    document.getElementById("dash-pending-body").innerHTML = orders.filter(o=>o.status==="pending").map(o => `
-      <tr><td>#${o.id}</td><td>${o.customer}</td><td>${money(o.total)}</td>
-      <td><button class="btn btn-small btn-primary" onclick="approveDelivery(${o.id})">Approve</button></td></tr>
-    `).join("") || "<tr><td colspan='4'>Nothing waiting — all caught up.</td></tr>";
+  const origOrders = renderOrders;
+  renderOrders = function(){
+    origOrders();
+    const tbody = document.getElementById("orders-body");
+    if (!tbody) return;
+    
+    tbody.innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.customer}</td>
+        <td>${o.qty || 1}</td>
+        <td>${money(o.total)}</td>
+        <td>${o.delivery || '—'}</td>
+        <td><span class="badge bg-${o.status === 'pending' ? 'warning' : (o.status === 'rejected' ? 'danger' : 'success')}">${o.status}</span></td>
+        <td>
+          ${o.status === 'pending' ? `
+            <button class="btn btn-small btn-primary" onclick="approveDelivery(${o.id})">Approve</button>
+            <button class="btn btn-small btn-danger" onclick="rejectDelivery(${o.id})" style="margin-left: 4px;">Reject</button>
+          ` : `
+            <span style="color: #666; font-size: 13px;">${o.status}</span>
+          `}
+        </td>
+      </tr>
+    `).join("");
   };
+
+  async function rejectDelivery(id) {
+    if (!confirm("Are you sure you want to reject order #" + id + "?")) return;
+    try {
+      const r = await fetch(`/admin/api/orders/${id}/reject`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": window.MM_CSRF
+        }
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) {
+        siteToast("Order #" + id + " rejected.");
+        if (typeof loadAdminData === "function") loadAdminData();
+        else location.reload();
+      } else {
+        siteToast(d.message || "Failed to reject order.");
+      }
+    } catch (e) {
+      siteToast("An error occurred.");
+    }
+  }
 
   // Override promotion product list rendering for single-line alignment
   if (typeof renderPromoFormProducts === 'function') {

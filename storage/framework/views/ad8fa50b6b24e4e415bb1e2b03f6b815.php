@@ -33,7 +33,10 @@
 
 <header class="site <?php echo $__env->yieldContent('header-class'); ?>">
   <div class="wrap head-row">
-    <a href="<?php echo e(route('home')); ?>" class="brand"><span class="cart-emoji"><i class="fa-solid fa-cart-shopping"></i></span><div>Mini<span>Mart</span><small>FRESH · QUALITY · EVERYDAY</small></div></a>
+      <!-- Image Logo -->
+      <a href="<?php echo e(route('home')); ?>" class="brand">
+        <img src="<?php echo e(asset('Photo/minimartlogo.png')); ?>" alt="MiniMart Logo" style="height: 48px; width: auto; object-fit: contain;">
+      </a>
 
     <form class="head-search" id="search-form">
       <input type="text" id="search-input" placeholder="Search for products, categories…" aria-label="Search products">
@@ -57,7 +60,7 @@
           </div>
         <?php endif; ?>
 
-        <!-- Logout Form (Works for both Admin and Customer) -->
+        <!-- Logout Form -->
         <form action="<?php echo e(route('logout')); ?>" method="POST" style="margin:0;">
           <?php echo csrf_field(); ?>
           <button type="submit" class="mini-link" style="background:none; border:none; cursor:pointer; padding:0; text-align:left;">
@@ -81,19 +84,81 @@
     </div>
   </div>
 
-  <div class="wrap nav-row">
-    <div class="cat-dropdown-wrap" tabindex="0">
-      <button class="cat-toggle" onclick="location.href='<?php echo e(route('products.index')); ?>'"><i class="fa-solid fa-bars"></i> Shop by Categories</button>
-      <div class="mega-dropdown" id="mega-cat-menu"></div>
+  
+  <div class="wrap nav-row" style="display: flex; align-items: center; justify-content: center; gap: 32px; width: 100%;">
+    
+    
+    <div class="cat-dropdown-wrap" tabindex="0" style="position: relative;">
+      <button type="button" class="cat-toggle" onclick="toggleCatDropdown(event)" style="display: inline-flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-bars"></i> Shop by Categories
+      </button>
+      
+      <div class="mega-dropdown" id="mega-cat-menu" style="display: none; opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; transform: translateY(10px); position: absolute; top: 100%; left: 0; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.12); border-radius: 16px; width: 360px; padding: 14px; z-index: 99999; border: 1px solid #e2e8f0; margin-top: 8px; grid-template-columns: 1fr 1fr; gap: 8px;">
+        
+        
+        <a href="<?php echo e(route('products.index', ['cat' => 'All'])); ?>" style="grid-column: span 2; display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: #065f46; text-decoration: none; font-weight: 700; background: #d1fae5; border-radius: 10px; transition: all 0.2s;">
+          <i class="fa-solid fa-border-all text-success" style="font-size: 15px;"></i> All Categories
+        </a>
+
+        
+        <?php if(isset($categories) && count($categories) > 0): ?>
+          <?php $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $category): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php
+              $catName = is_object($category) ? ($category->name ?? $category->slug) : $category;
+              $catIcon = isset($category->icon) && $category->icon ? $category->icon : 'fa-layer-group';
+            ?>
+            <a href="<?php echo e(route('products.index', ['cat' => $catName])); ?>" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #0f172a; text-decoration: none; font-size: 14px; font-weight: 600; border-radius: 10px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+              <i class="fa-solid <?php echo e($catIcon); ?> text-success" style="font-size: 14px; width: 18px; text-align: center;"></i> 
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?php echo e($catName); ?></span>
+            </a>
+          <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        <?php endif; ?>
+      </div>
     </div>
-    <nav class="nav-links">
+
+    <script>
+    function toggleCatDropdown(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('mega-cat-menu');
+        if (menu.style.display === 'none' || menu.style.display === '') {
+            menu.style.display = 'grid';
+            setTimeout(() => {
+                menu.style.opacity = '1';
+                menu.style.transform = 'translateY(0)';
+            }, 10);
+        } else {
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                menu.style.display = 'none';
+            }, 200);
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('mega-cat-menu');
+        const wrap = document.querySelector('.cat-dropdown-wrap');
+        if (menu && wrap && !wrap.contains(e.target)) {
+            menu.style.opacity = '0';
+            menu.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                menu.style.display = 'none';
+            }, 200);
+        }
+    });
+    </script>
+
+    
+    <nav class="nav-links" style="display: flex; align-items: center; justify-content: center; margin: 0; gap: 24px;">
       <a href="<?php echo e(route('home')); ?>" class="<?php echo e(request()->routeIs('home') ? 'active' : ''); ?>">Home</a>
       <a href="<?php echo e(route('products.index')); ?>" class="<?php echo e(request()->routeIs('products.index') ? 'active' : ''); ?>">Products ▾</a>
       <a href="<?php echo e(route('cart.index')); ?>" class="<?php echo e(request()->routeIs('cart.index') ? 'active' : ''); ?>">Order</a>
       <a href="<?php echo e(route('returns.index')); ?>" class="<?php echo e(request()->routeIs('returns.index') ? 'active' : ''); ?>">Returns Policy</a>
       <a href="<?php echo e(route('contact.index')); ?>" class="<?php echo e(request()->routeIs('contact.index') ? 'active' : ''); ?>">Contact Us</a>
     </nav>
-    <a href="<?php echo e(route('home')); ?>#flash-deals" class="flash-btn"><i class="fa-solid fa-bolt"></i> FLASH DEALS</a>
+
+    
+    <a href="<?php echo e(route('home')); ?>#flash-deals" class="flash-btn" style="display: inline-flex; align-items: center; gap: 6px;"><i class="fa-solid fa-bolt"></i> FLASH DEALS</a>
   </div>
 </header>
 
@@ -102,7 +167,14 @@
 <footer class="site <?php echo $__env->yieldContent('header-class'); ?>">
   <div class="wrap">
     <div>
-      <h4><span class="cart-emoji"><i class="fa-solid fa-cart-shopping"></i></span> Mini Mart</h4>
+      <h4 style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span style="display: flex; align-items: center; justify-content: center; font-size: 28px; color: #80EF80;">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </span>
+        <span style="font-family: var(--font-display); font-size: 24px; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 4px;">
+          <span style="color: #04ff2a;">Mini</span><span style="color: #f7fff6;">Mart</span>
+        </span>
+      </h4>
       <p style="opacity:.85;">Your one-stop shop for fresh groceries and household essentials. Quality products, trusted by thousands.</p>
       <div class="announce-social">
         <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
@@ -153,11 +225,9 @@
   window.MM_CATEGORY_ICONS = <?php echo json_encode($categories->pluck('icon', 'name'), 512) ?>;
   window.MM_CATEGORY_IMAGES = <?php echo json_encode($categories->pluck('image', 'name'), 512) ?>;
   
-  // Inject global products if passed from controller/ViewShare
   window.MM_PRODUCTS = <?php echo json_encode(isset($products) ? $products->map->toStorefrontArray() : [], 15, 512) ?>;
 </script>
 
-<!-- Fixed JS Asset Path for ngrok -->
 <script src="<?php echo e(asset('js/app.js')); ?>"></script>
 <script src="<?php echo e(asset('js/animations.js')); ?>?v=1"></script>
 <?php echo $__env->yieldPushContent('scripts'); ?>
