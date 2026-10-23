@@ -23,7 +23,9 @@
           </div>
         </div>
         <div class="hero2-media">
-          <div class="hero-badge"><span>30%</span>UP TO<br>OFF</div>
+          @if ($maxDiscount > 0)
+            <div class="hero-badge"><span>{{ $maxDiscount + 0 }}%</span>UP TO<br>OFF</div>
+          @endif
           <img src="{{ $heroImage }}" alt="Basket of fresh groceries">
         </div>
       </div>
@@ -56,12 +58,17 @@
   <div class="wrap promo-split">
     <div class="promo-card dark">
       <div class="promo-inner">
-        <p class="promo-kicker">LIMITED TIME OFFER</p>
-        <h3>Weekend Super Saver</h3>
-        <p>Enjoy up to 30% off on selected products. Hurry, offer valid till Sunday.</p>
+        <p class="promo-kicker">{{ $promo ? 'LIMITED TIME OFFER' : 'FRESH DEALS' }}</p>
+        <h3>{{ $promo->title ?? 'Fresh Deals Every Week' }}</h3>
+        <p>
+          {{ $promo?->description ?: ($maxDiscount > 0 ? 'Enjoy up to '.($maxDiscount + 0).'% off on selected products.' : 'New offers are coming soon.') }}
+          @if ($promo?->ends_at) Offer valid till {{ $promo->ends_at->format('D, j M') }}. @endif
+        </p>
         <a href="{{ route('home') }}#flash-deals" class="btn btn-accent" style="margin-top:10px;">Shop Now</a>
       </div>
-      <div class="promo-circle">UP TO<span>30%</span>OFF</div>
+      @if ($maxDiscount > 0)
+        <div class="promo-circle">UP TO<span>{{ $maxDiscount + 0 }}%</span>OFF</div>
+      @endif
       <div class="promo-media"><img src="{{ asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg') }}" alt="Fresh vegetables on wooden crate"></div>
     </div>
     <div class="promo-card light">
@@ -89,21 +96,30 @@
       </div>
     </div>
     <div class="product-grid" id="deal-grid" data-live style="grid-template-columns: repeat(6,1fr);">
-      @foreach ($dealIds as $id)
-        @php($p = $products->firstWhere('id', $id))
-        @continue(! $p)
-        @php($pct = $dealPct[$id])
-        @php($was = $p->price / (1 - $pct / 100))
-        <div class="deal-card">
-          <div class="deal-media"><img src="{{ $p->image_url }}" alt="{{ $p->name }}"><span class="deal-off">{{ $pct }}% OFF</span></div>
+      @forelse ($deals as $p)
+        @php($off = $p->effective_discount)
+        @php($out = $p->isOutOfStock())
+        @php($low = ! $out && $p->qty < $lowStockThreshold)
+        <div class="deal-card{{ $out ? ' is-out' : '' }}">
+          <div class="deal-media">
+            <img src="{{ $p->image_url }}" alt="{{ $p->name }}">
+            <span class="deal-off">−{{ $off + 0 }}%</span>
+          </div>
           <div class="deal-body">
             <div class="deal-name">{{ $p->name }}</div>
             <div class="deal-unit">{{ $p->unit }}</div>
-            <div class="deal-price"><span class="now">${{ number_format($p->price, 2) }}</span><span class="was">${{ number_format($was, 2) }}</span></div>
-            <button class="deal-add" onclick="addToCart({{ $p->id }}); this.textContent='Added ✓';">Add to Cart <i class="fa-solid fa-cart-shopping"></i></button>
+            <div class="deal-price"><span class="now">${{ number_format($p->sale_price, 2) }}</span><span class="was">${{ number_format($p->price, 2) }}</span></div>
+            @if ($out)
+              <div class="stock-badge out">Out of stock</div>
+            @elseif ($low)
+              <div class="stock-badge low">Only {{ $p->qty + 0 }} left</div>
+            @endif
+            <button class="deal-add" @disabled($out) onclick="mmAdd(this, {{ $p->id }})">{{ $out ? 'Out of stock' : 'Add to Cart' }} @unless ($out)<i class="fa-solid fa-cart-shopping"></i>@endunless</button>
           </div>
         </div>
-      @endforeach
+      @empty
+        <p style="grid-column:1/-1; text-align:center; color:var(--muted); padding:24px 0;">No active deals right now — check back soon.</p>
+      @endforelse
     </div>
   </div>
 </section>
@@ -116,17 +132,28 @@
     </div>
     <div class="product-grid" id="new-grid" data-live>
       @foreach ($newArrivals as $p)
-        <div class="product-card">
+        @php($off = $p->effective_discount)
+        @php($out = $p->isOutOfStock())
+        @php($low = ! $out && $p->qty < $lowStockThreshold)
+        <div class="product-card{{ $out ? ' is-out' : '' }}">
           <div class="product-media">
             <img src="{{ $p->image_url }}" alt="{{ $p->name }}">
             <span class="new-flag">NEW</span>
+            @if ($out)
+              <span class="stock-flag">Out of stock</span>
+            @elseif ($low)
+              <span class="stock-flag">Only {{ $p->qty + 0 }} left</span>
+            @endif
+            @if ($off > 0)
+              <span class="disc-flag">−{{ $off + 0 }}%</span>
+            @endif
           </div>
           <div class="product-body">
             <span class="product-cat">{{ $p->category->name }}</span>
             <span class="product-name">{{ $p->name }}</span>
             <div class="product-foot">
-              <span class="price-tag">${{ number_format($p->price, 2) }}<br><small>per {{ $p->unit }}</small></span>
-              <button class="add-btn" onclick="addToCart({{ $p->id }}); this.textContent='Added ✓';">Add to Cart</button>
+              <span class="price-tag">${{ number_format($p->sale_price, 2) }}@if ($off > 0) <s class="was-price">${{ number_format($p->price, 2) }}</s>@endif<br><small>per {{ $p->unit }}</small></span>
+              <button class="add-btn" @disabled($out) onclick="mmAdd(this, {{ $p->id }})">{{ $out ? 'Sold out' : 'Add to Cart' }}</button>
             </div>
           </div>
         </div>
@@ -180,6 +207,15 @@
 
 @push('scripts')
 <script>
+  // Add to cart; only flip the button to "Added ✓" if the server accepted it (stock check).
+  function mmAdd(btn, id){
+    btn.disabled = true;
+    addToCart(id).then(function(d){
+      btn.disabled = false;
+      if (d && !d.error) btn.textContent = 'Added ✓';
+    });
+  }
+
   function scrollCats(dir){
     const el = document.getElementById("cat-grid8");
     el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });

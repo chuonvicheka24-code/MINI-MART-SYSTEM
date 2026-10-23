@@ -34,7 +34,7 @@ class DashboardController extends Controller
 
     private function payload(): array
     {
-        $products = Product::with('category')->orderBy('qty')->get();
+        $products = Product::with(['category', 'promotions'])->orderBy('qty')->get();
         $categories = Category::orderBy('name')->get();
         $orders = Order::with(['items', 'deliveryStaff'])->orderByDesc('id')->get();
         $staff = DeliveryStaff::orderBy('name')->get();
@@ -45,7 +45,7 @@ class DashboardController extends Controller
         $promotions = Promotion::with('products')->orderByDesc('id')->get();
 
         $data = [
-            'products' => $products->map(fn ($p) => $p->toStorefrontArray() + ['discountPercent' => $p->discount_percent])->values(),
+            'products' => $products->map(fn ($p) => $p->toAdminArray())->values(),
             'categories' => $categories->pluck('name')->values(),
             'orders' => $orders->map(fn ($o) => [
                 'id' => $o->id,

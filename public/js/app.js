@@ -42,27 +42,29 @@ function refreshCartCache(){
   });
 }
 
+/** Apply a cart response; if the server refused (e.g. not enough stock) tell the customer and resync. */
+function _applyCartResponse(data){
+  if(data && data.error){
+    alert(data.error);
+    return refreshCartCache().then(() => ({ error: data.error }));
+  }
+  _cartCache = data;
+  updateCartCount();
+  refreshHeadCartTotal();
+  return data;
+}
+
 function addToCart(id, qty = 1){
   return mmFetch(window.MM_ROUTES.cartAdd, {
     method: "POST",
     body: JSON.stringify({ id, qty }),
-  }).then(data => {
-    _cartCache = data;
-    updateCartCount();
-    refreshHeadCartTotal();
-    return data;
-  });
+  }).then(_applyCartResponse);
 }
 function setCartQty(id, qty){
   return mmFetch(window.MM_ROUTES.cartSet, {
     method: "POST",
     body: JSON.stringify({ id, qty }),
-  }).then(data => {
-    _cartCache = data;
-    updateCartCount();
-    refreshHeadCartTotal();
-    return data;
-  });
+  }).then(_applyCartResponse);
 }
 function removeFromCart(id){ return setCartQty(id, 0); }
 

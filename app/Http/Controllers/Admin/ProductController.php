@@ -103,6 +103,6 @@ class ProductController extends Controller
 
     private function present(Product $product): array
     {
-        return $product->toStorefrontArray() + ['discountPercent' => $product->discount_percent];
+        return $product->toAdminArray();
     }
 }

@@ -68,8 +68,12 @@ class PurchaseOrderController extends Controller
                 if (! $product) {
                     continue;
                 }
+                // Remember the latest purchase cost on the product (cost reports use this).
+                if ((float) $item->unit_cost > 0) {
+                    $product->update(['cost' => $item->unit_cost]);
+                }
                 $product->increment('qty', $item->qty);
-                $products->push($product->fresh('category'));
+                $products->push($product->fresh(['category', 'promotions']));
             }
 
             $purchaseOrder->update([
@@ -82,7 +86,7 @@ class PurchaseOrderController extends Controller
 
         return response()->json([
             'purchaseOrder' => $purchaseOrder->fresh('items')->toAdminArray(),
-            'products' => $updatedProducts->map(fn ($p) => $p->toStorefrontArray() + ['discountPercent' => $p->discount_percent])->values(),
+            'products' => $updatedProducts->map(fn ($p) => $p->toAdminArray())->values(),
         ]);
     }
 

@@ -41,6 +41,12 @@ class Promotion extends Model
         return ! $this->isEnded() && $this->starts_at !== null && $this->starts_at->isFuture();
     }
 
+    /** Started (or no start date), not ended, inside its date window. */
+    public function isActive(): bool
+    {
+        return $this->status() === 'active';
+    }
+
     public function status(): string
     {
         if ($this->isEnded()) {

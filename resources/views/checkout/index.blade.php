@@ -370,6 +370,12 @@
       body: JSON.stringify(payload),
     })
     .then(r => r.json().catch(() => ({ ok: r.ok }))).then(res => {
+      // Server refused the order (e.g. not enough stock): tell the customer, resync the basket, stop.
+      if (res && res.message && !res.order) {
+        alert(res.message);
+        if (typeof refreshCartCache === 'function') refreshCartCache().then(() => location.reload());
+        return;
+      }
       const orderId = res.order_id || res.order?.number || res.id || "1060";
       document.getElementById("inv-number").textContent = orderId;
       document.getElementById("inv-date").textContent = new Date().toLocaleString('en-US', { 

@@ -17,12 +17,14 @@ class Product extends Model
         'discount_percent',
         'date_added',
         'expiry_date',
+        'cost',
     ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
+            'cost' => 'decimal:2',
             'date_added' => 'date',
             'expiry_date' => 'date',
         ];
@@ -48,14 +50,39 @@ class Product extends Model
         return $this->belongsToMany(Promotion::class, 'promotion_product');
     }
 
-    /** Price after any active admin discount is applied. */
+    /**
+     * The discount customers actually get right now: the biggest of the
+     * product's own manual discount and any promotion that is active TODAY
+     * (started, not ended, inside its start/end dates). Promotion dates are
+     * evaluated at read time, so a promotion switches on/off by itself.
+     * Eager-load `promotions` where many products are read at once.
+     */
+    public function getEffectiveDiscountAttribute(): float
+    {
+        $manual = (float) ($this->discount_percent ?? 0);
+
+        $promo = (float) ($this->promotions
+            ->filter(fn ($promotion) => $promotion->isActive())
+            ->max('discount_percent') ?? 0);
+
+        return max($manual, $promo);
+    }
+
+    /** Price after the effective (manual or active-promotion) discount is applied. */
     public function getSalePriceAttribute(): float
     {
-        if (! $this->discount_percent) {
+        $discount = $this->effective_discount;
+
+        if ($discount <= 0) {
             return (float) $this->price;
         }
 
-        return round((float) $this->price * (1 - $this->discount_percent / 100), 2);
+        return round((float) $this->price * (1 - $discount / 100), 2);
+    }
+
+    public function isOutOfStock(): bool
+    {
+        return (float) $this->qty <= 0;
     }
 
     public function isLowStock(int $threshold = 10): bool
@@ -119,13 +146,21 @@ class Product extends Model
             'cat' => $this->category?->name,
             'price' => (float) $this->price,
             'salePrice' => $this->sale_price,
-            'discountPercent' => $this->discount_percent,
+            'discountPercent' => $this->effective_discount > 0 ? $this->effective_discount : null,
             'unit' => $this->unit,
             'emoji' => $this->emoji,
             'qty' => $this->qty,
             'img' => $this->image_url,
             'dateAdded' => optional($this->date_added)->format('Y-m-d'),
             'expiryDate' => optional($this->expiry_date)->format('Y-m-d'),
+        ];
+    }
+
+    /** Storefront shape plus admin-only fields. Never embed this in customer pages (cost is private). */
+    public function toAdminArray(): array
+    {
+        return $this->toStorefrontArray() + [
+            'cost' => $this->cost !== null ? (float) $this->cost : null,
         ];
     }
 }

@@ -248,7 +248,7 @@
             </div>
           </div>
           <table class="admin-table">
-            <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Unit</th><th>Qty</th><th>Expiry</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Unit</th><th>Qty</th><th>Cost</th><th>Expiry</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="inventory-body"></tbody>
           </table>
         </div>

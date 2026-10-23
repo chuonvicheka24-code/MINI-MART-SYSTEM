@@ -524,6 +524,7 @@ function renderInventory(){
       <td>${p.cat}</td>
       <td>${p.unit || "each"}</td>
       <td>${p.qty}</td>
+      <td>${p.cost ? money(p.cost) : "—"}</td>
       <td>${ex.cls ? `<span class="status ${ex.cls}">${ex.label}</span>` : ex.label}</td>
       <td><span class="status ${s.cls}">${s.label}</span></td>
       <td>
@@ -973,15 +974,15 @@ function exportInvoicesExcel(){
 
 function exportStockExcel(){
   const cats = {};
-  adminProducts.forEach(p => { const c = cats[p.cat] = cats[p.cat] || { n:0, value:0 }; c.n++; c.value += p.price * p.qty; });
-  const catRows = [["Category","Products","Stock value ($)","Level"]].concat(
-    Object.keys(cats).map(k => [k, cats[k].n, { money:+cats[k].value.toFixed(2) }, cats[k].value >= 100 ? "$100 or more" : "Under $100"]));
-  const prodRows = [["Product","Category","Unit price ($)","Qty","Stock value ($)"]].concat(
+  adminProducts.forEach(p => { const c = cats[p.cat] = cats[p.cat] || { n:0, value:0, cost:0 }; c.n++; c.value += p.price * p.qty; c.cost += (p.cost || 0) * p.qty; });
+  const catRows = [["Category","Products","Stock value ($)","Stock cost ($)","Level"]].concat(
+    Object.keys(cats).map(k => [k, cats[k].n, { money:+cats[k].value.toFixed(2) }, { money:+cats[k].cost.toFixed(2) }, cats[k].value >= 100 ? "$100 or more" : "Under $100"]));
+  const prodRows = [["Product","Category","Unit price ($)","Unit cost ($)","Qty","Stock value ($)","Stock cost ($)"]].concat(
     adminProducts.slice().sort((a, b) => String(a.cat).localeCompare(String(b.cat)) || a.name.localeCompare(b.name))
-      .map(p => [p.name, p.cat || "", { money:+p.price.toFixed(2) }, p.qty, { money:+(p.price * p.qty).toFixed(2) }]));
+      .map(p => [p.name, p.cat || "", { money:+p.price.toFixed(2) }, { money:+(p.cost || 0).toFixed(2) }, p.qty, { money:+(p.price * p.qty).toFixed(2) }, { money:+((p.cost || 0) * p.qty).toFixed(2) }]));
   XLSXLite.download([
-    { name:"Stock by category", rows:catRows, widths:[22,10,16,16] },
-    { name:"Products", rows:prodRows, widths:[30,20,14,8,16] }
+    { name:"Stock by category", rows:catRows, widths:[22,10,16,16,16] },
+    { name:"Products", rows:prodRows, widths:[30,20,14,14,8,16,16] }
   ], "minimart-stock-value.xlsx");
 }
 

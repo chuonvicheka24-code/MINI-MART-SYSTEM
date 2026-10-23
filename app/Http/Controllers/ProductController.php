@@ -16,7 +16,7 @@ class ProductController extends Controller
      */
     public function index(): View
     {
-        $products = Product::with('category')->get();
+        $products = Product::with(['category', 'promotions'])->get();
         $categories = Category::orderBy('name')->get();
 
         return view('products.index', compact('products', 'categories'));
@@ -26,7 +26,7 @@ class ProductController extends Controller
     public function data(): JsonResponse
     {
         return response()->json(
-            Product::with('category')->get()->map->toStorefrontArray()->values()
+            Product::with(['category', 'promotions'])->get()->map->toStorefrontArray()->values()
         )->header('Cache-Control', 'no-store');
     }
 }

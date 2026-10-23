@@ -488,3 +488,13 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 .chart-box svg text{ pointer-events:none; }
 .chart-box .dotpt{ transition: r .12s; }
 .chart-box g:hover .dotpt{ r:8; }
+
+
+/* ---- stock + discount labels (home / storefront) ---- */
+.stock-badge{ display:inline-block; margin:0 0 8px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+.stock-badge.low{ background:#fff4e0; color: var(--warn); }
+.stock-badge.out{ background:#fdeaea; color:#c0392b; }
+.disc-flag{ position:absolute; bottom:10px; left:10px; background: var(--brand-dark); color:#fff; border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; box-shadow: var(--shadow); }
+.was-price{ color:#8a9a8c; font-size:12px; font-weight:500; margin-left:4px; }
+.deal-card.is-out img, .product-card.is-out .product-media img{ filter: grayscale(.8); opacity:.65; }
+.deal-add:disabled, .add-btn:disabled{ opacity:.55; cursor:not-allowed; transform:none !important; box-shadow:none !important; }

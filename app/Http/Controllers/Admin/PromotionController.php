@@ -33,23 +33,22 @@ class PromotionController extends Controller
                 'ends_at' => $data['ends_at'] ?? null,
             ]);
 
+            // The discount is NOT copied onto the products any more: the storefront reads it
+            // from the promotion, so starts_at / ends_at are respected automatically.
             $promotion->products()->sync($data['product_ids']);
-
-            Product::whereIn('id', $data['product_ids'])
-                ->update(['discount_percent' => $data['discount_percent']]);
 
             return $promotion;
         });
 
-        $products = Product::whereIn('id', $data['product_ids'])->with('category')->get();
+        $products = Product::whereIn('id', $data['product_ids'])->with(['category', 'promotions'])->get();
 
         return response()->json([
             'promotion' => $promotion->load('products')->toAdminArray(),
-            'products' => $products->map(fn ($p) => $p->toStorefrontArray() + ['discountPercent' => $p->discount_percent])->values(),
+            'products' => $products->map(fn ($p) => $p->toAdminArray())->values(),
         ]);
     }
 
-    /** End a promotion early and clear the discount from its products (only where it still matches). */
+    /** End a promotion early. (Also clears a discount an older version copied onto the products, where it still matches.) */
     public function destroy(Promotion $promotion): JsonResponse
     {
         $productIds = $promotion->products()->pluck('products.id');
@@ -60,10 +59,10 @@ class PromotionController extends Controller
 
         $promotion->update(['ended_at' => now()]);
 
-        $products = Product::whereIn('id', $productIds)->with('category')->get();
+        $products = Product::whereIn('id', $productIds)->with(['category', 'promotions'])->get();
 
         return response()->json([
-            'products' => $products->map(fn ($p) => $p->toStorefrontArray() + ['discountPercent' => $p->discount_percent])->values(),
+            'products' => $products->map(fn ($p) => $p->toAdminArray())->values(),
         ]);
     }
 }

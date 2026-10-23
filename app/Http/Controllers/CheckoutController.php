@@ -38,71 +38,95 @@ class CheckoutController extends Controller
         ]);
 
         $cart = session(CartController::SESSION_KEY, []);
-        if (empty($cart)) {
-            return response()->json(['message' => 'Your basket is empty.'], 422);
+
+        // The cart stores each line as ['qty' => ..., 'price' => ...]; read the real quantity.
+        // (Casting the whole line to float used to turn every quantity into 1.)
+        $wanted = [];
+        foreach ($cart as $id => $line) {
+            $qty = is_array($line) ? (float) ($line['qty'] ?? 0) : (float) $line;
+            if ($qty > 0) {
+                $wanted[(int) $id] = $qty;
+            }
         }
 
-        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
-        if ($products->isEmpty()) {
+        if (empty($wanted)) {
             return response()->json(['message' => 'Your basket is empty.'], 422);
         }
 
         $settings = Setting::current();
         $user = $request->user(); // Guaranteed authenticated via middleware
 
-        $order = DB::transaction(function () use ($cart, $products, $data, $settings, $user) {
-            $subtotal = 0;
-            foreach ($cart as $id => $qty) {
-                if ($product = $products->get($id)) {
-                    // Force float to ensure decimal quantities (e.g., 1.5kg) calculate correctly
-                    $floatQty = (float) $qty;
-                    $subtotal += $product->sale_price * $floatQty;
-                }
-            }
-            // Flat fee set by the admin (Staff Delivery > Delivery price), by transport type.
-            $deliveryFee = round($data['transport_type'] === 'truck' ? $settings->truck_price : $settings->moto_price, 2);
+        try {
+            $order = DB::transaction(function () use ($wanted, $data, $settings, $user) {
+                // Re-read products inside the transaction so stock and prices are the current ones.
+                $products = Product::with('promotions')
+                    ->whereIn('id', array_keys($wanted))
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id');
 
-            $order = Order::create([
-                'user_id' => $user->id,
-                'customer_name' => $user->name,
-                'customer_email' => $data['email'] ?? $user->email,
-                'customer_phone' => $data['phone'] ?? $user->phone,
-                'location' => $data['location'] ?? null,
-                'address' => $data['address'] ?? null,
-                'truck_number' => $data['transport_type'] === 'truck' ? ($data['truck_number'] ?? null) : null,
-                'transport_type' => $data['transport_type'],
-                'payment_method' => $data['payment_method'],
-                'subtotal' => round($subtotal, 2),
-                'delivery_fee' => $deliveryFee,
-                'total' => round($subtotal + $deliveryFee, 2),
-                'status' => 'pending',
-                'placed_at' => now(),
-            ]);
+                $subtotal = 0;
+                foreach ($wanted as $id => $qty) {
+                    $product = $products->get($id);
 
-            foreach ($cart as $id => $qty) {
-                $product = $products->get($id);
-                if (! $product) {
-                    continue;
+                    if (! $product) {
+                        throw new \DomainException('An item in your basket is no longer available.');
+                    }
+
+                    if ($qty > (float) $product->qty) {
+                        $left = (float) $product->qty;
+                        throw new \DomainException(
+                            $left <= 0
+                                ? "{$product->name} is out of stock."
+                                : "Only {$left} {$product->unit} of {$product->name} left in stock."
+                        );
+                    }
+
+                    $subtotal += $product->sale_price * $qty;
                 }
 
-                $floatQty = (float) $qty;
+                // Flat fee set by the admin (Staff Delivery > Delivery price), by transport type.
+                $deliveryFee = round($data['transport_type'] === 'truck' ? $settings->truck_price : $settings->moto_price, 2);
 
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'unit' => $product->unit,
-                    'price' => $product->sale_price,
-                    'qty' => $floatQty,
-                    'line_total' => round($product->sale_price * $floatQty, 2),
+                $order = Order::create([
+                    'user_id' => $user->id,
+                    'customer_name' => $user->name,
+                    'customer_email' => $data['email'] ?? $user->email,
+                    'customer_phone' => $data['phone'] ?? $user->phone,
+                    'location' => $data['location'] ?? null,
+                    'address' => $data['address'] ?? null,
+                    'truck_number' => $data['transport_type'] === 'truck' ? ($data['truck_number'] ?? null) : null,
+                    'transport_type' => $data['transport_type'],
+                    'payment_method' => $data['payment_method'],
+                    'subtotal' => round($subtotal, 2),
+                    'delivery_fee' => $deliveryFee,
+                    'total' => round($subtotal + $deliveryFee, 2),
+                    'status' => 'pending',
+                    'placed_at' => now(),
                 ]);
 
-                // Stock decrement supports decimal quantities
-                $product->decrement('qty', min($floatQty, (float) $product->qty));
-            }
+                foreach ($wanted as $id => $qty) {
+                    $product = $products->get($id);
 
-            return $order;
-        });
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'unit' => $product->unit,
+                        'price' => $product->sale_price,
+                        'qty' => $qty,
+                        'line_total' => round($product->sale_price * $qty, 2),
+                    ]);
+
+                    // Stock decrement supports decimal quantities (validated above, so never negative).
+                    $product->decrement('qty', $qty);
+                }
+
+                return $order;
+            });
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         session()->forget(CartController::SESSION_KEY);
 

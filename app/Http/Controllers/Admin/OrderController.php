@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryStaff;
 use App\Models\Order;
+use App\Models\Product;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -22,7 +24,21 @@ class OrderController extends Controller
 
     public function reject(Order $order): JsonResponse
     {
-        $order->update(['status' => 'rejected']);
+        // Stock is taken when the order is placed, so give it back once — only for
+        // orders that were still open (pending / out for delivery), never twice.
+        $restoreStock = in_array($order->status, ['pending', 'out'], true);
+
+        DB::transaction(function () use ($order, $restoreStock) {
+            if ($restoreStock) {
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        Product::whereKey($item->product_id)->increment('qty', (float) $item->qty);
+                    }
+                }
+            }
+
+            $order->update(['status' => 'rejected']);
+        });
 
         return response()->json(['order' => $order->fresh(['items', 'deliveryStaff'])]);
     }

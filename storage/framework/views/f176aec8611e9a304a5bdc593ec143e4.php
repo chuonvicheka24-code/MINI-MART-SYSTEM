@@ -21,7 +21,9 @@
           </div>
         </div>
         <div class="hero2-media">
-          <div class="hero-badge"><span>30%</span>UP TO<br>OFF</div>
+          <?php if($maxDiscount > 0): ?>
+            <div class="hero-badge"><span><?php echo e($maxDiscount + 0); ?>%</span>UP TO<br>OFF</div>
+          <?php endif; ?>
           <img src="<?php echo e($heroImage); ?>" alt="Basket of fresh groceries">
         </div>
       </div>
@@ -54,12 +56,18 @@
   <div class="wrap promo-split">
     <div class="promo-card dark">
       <div class="promo-inner">
-        <p class="promo-kicker">LIMITED TIME OFFER</p>
-        <h3>Weekend Super Saver</h3>
-        <p>Enjoy up to 30% off on selected products. Hurry, offer valid till Sunday.</p>
+        <p class="promo-kicker"><?php echo e($promo ? 'LIMITED TIME OFFER' : 'FRESH DEALS'); ?></p>
+        <h3><?php echo e($promo->title ?? 'Fresh Deals Every Week'); ?></h3>
+        <p>
+          <?php echo e($promo?->description ?: ($maxDiscount > 0 ? 'Enjoy up to '.($maxDiscount + 0).'% off on selected products.' : 'New offers are coming soon.')); ?>
+
+          <?php if($promo?->ends_at): ?> Offer valid till <?php echo e($promo->ends_at->format('D, j M')); ?>. <?php endif; ?>
+        </p>
         <a href="<?php echo e(route('home')); ?>#flash-deals" class="btn btn-accent" style="margin-top:10px;">Shop Now</a>
       </div>
-      <div class="promo-circle">UP TO<span>30%</span>OFF</div>
+      <?php if($maxDiscount > 0): ?>
+        <div class="promo-circle">UP TO<span><?php echo e($maxDiscount + 0); ?>%</span>OFF</div>
+      <?php endif; ?>
       <div class="promo-media"><img src="<?php echo e(asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg')); ?>" alt="Fresh vegetables on wooden crate"></div>
     </div>
     <div class="promo-card light">
@@ -87,21 +95,30 @@
       </div>
     </div>
     <div class="product-grid" id="deal-grid" data-live style="grid-template-columns: repeat(6,1fr);">
-      <?php $__currentLoopData = $dealIds; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <?php ($p = $products->firstWhere('id', $id)); ?>
-        <?php if(! $p) continue; ?>
-        <?php ($pct = $dealPct[$id]); ?>
-        <?php ($was = $p->price / (1 - $pct / 100)); ?>
-        <div class="deal-card">
-          <div class="deal-media"><img src="<?php echo e($p->image_url); ?>" alt="<?php echo e($p->name); ?>"><span class="deal-off"><?php echo e($pct); ?>% OFF</span></div>
+      <?php $__empty_1 = true; $__currentLoopData = $deals; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+        <?php ($off = $p->effective_discount); ?>
+        <?php ($out = $p->isOutOfStock()); ?>
+        <?php ($low = ! $out && $p->qty < $lowStockThreshold); ?>
+        <div class="deal-card<?php echo e($out ? ' is-out' : ''); ?>">
+          <div class="deal-media">
+            <img src="<?php echo e($p->image_url); ?>" alt="<?php echo e($p->name); ?>">
+            <span class="deal-off">−<?php echo e($off + 0); ?>%</span>
+          </div>
           <div class="deal-body">
             <div class="deal-name"><?php echo e($p->name); ?></div>
             <div class="deal-unit"><?php echo e($p->unit); ?></div>
-            <div class="deal-price"><span class="now">$<?php echo e(number_format($p->price, 2)); ?></span><span class="was">$<?php echo e(number_format($was, 2)); ?></span></div>
-            <button class="deal-add" onclick="addToCart(<?php echo e($p->id); ?>); this.textContent='Added ✓';">Add to Cart <i class="fa-solid fa-cart-shopping"></i></button>
+            <div class="deal-price"><span class="now">$<?php echo e(number_format($p->sale_price, 2)); ?></span><span class="was">$<?php echo e(number_format($p->price, 2)); ?></span></div>
+            <?php if($out): ?>
+              <div class="stock-badge out">Out of stock</div>
+            <?php elseif($low): ?>
+              <div class="stock-badge low">Only <?php echo e($p->qty + 0); ?> left</div>
+            <?php endif; ?>
+            <button class="deal-add" <?php if($out): echo 'disabled'; endif; ?> onclick="mmAdd(this, <?php echo e($p->id); ?>)"><?php echo e($out ? 'Out of stock' : 'Add to Cart'); ?> <?php if (! ($out)): ?><i class="fa-solid fa-cart-shopping"></i><?php endif; ?></button>
           </div>
         </div>
-      <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+      <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+        <p style="grid-column:1/-1; text-align:center; color:var(--muted); padding:24px 0;">No active deals right now — check back soon.</p>
+      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -114,17 +131,28 @@
     </div>
     <div class="product-grid" id="new-grid" data-live>
       <?php $__currentLoopData = $newArrivals; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <div class="product-card">
+        <?php ($off = $p->effective_discount); ?>
+        <?php ($out = $p->isOutOfStock()); ?>
+        <?php ($low = ! $out && $p->qty < $lowStockThreshold); ?>
+        <div class="product-card<?php echo e($out ? ' is-out' : ''); ?>">
           <div class="product-media">
             <img src="<?php echo e($p->image_url); ?>" alt="<?php echo e($p->name); ?>">
             <span class="new-flag">NEW</span>
+            <?php if($out): ?>
+              <span class="stock-flag">Out of stock</span>
+            <?php elseif($low): ?>
+              <span class="stock-flag">Only <?php echo e($p->qty + 0); ?> left</span>
+            <?php endif; ?>
+            <?php if($off > 0): ?>
+              <span class="disc-flag">−<?php echo e($off + 0); ?>%</span>
+            <?php endif; ?>
           </div>
           <div class="product-body">
             <span class="product-cat"><?php echo e($p->category->name); ?></span>
             <span class="product-name"><?php echo e($p->name); ?></span>
             <div class="product-foot">
-              <span class="price-tag">$<?php echo e(number_format($p->price, 2)); ?><br><small>per <?php echo e($p->unit); ?></small></span>
-              <button class="add-btn" onclick="addToCart(<?php echo e($p->id); ?>); this.textContent='Added ✓';">Add to Cart</button>
+              <span class="price-tag">$<?php echo e(number_format($p->sale_price, 2)); ?><?php if($off > 0): ?> <s class="was-price">$<?php echo e(number_format($p->price, 2)); ?></s><?php endif; ?><br><small>per <?php echo e($p->unit); ?></small></span>
+              <button class="add-btn" <?php if($out): echo 'disabled'; endif; ?> onclick="mmAdd(this, <?php echo e($p->id); ?>)"><?php echo e($out ? 'Sold out' : 'Add to Cart'); ?></button>
             </div>
           </div>
         </div>
@@ -178,6 +206,15 @@
 
 <?php $__env->startPush('scripts'); ?>
 <script>
+  // Add to cart; only flip the button to "Added ✓" if the server accepted it (stock check).
+  function mmAdd(btn, id){
+    btn.disabled = true;
+    addToCart(id).then(function(d){
+      btn.disabled = false;
+      if (d && !d.error) btn.textContent = 'Added ✓';
+    });
+  }
+
   function scrollCats(dir){
     const el = document.getElementById("cat-grid8");
     el.scrollBy({ left: dir * (el.clientWidth * 0.8), behavior: "smooth" });
