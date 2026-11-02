@@ -68,6 +68,7 @@ class Order extends Model
             'pending' => 'Pending',
             'out' => 'Out for delivery',
             'done' => 'Delivered',
+            'rejected' => 'Rejected',
             default => ucfirst($this->status),
         };
     }
