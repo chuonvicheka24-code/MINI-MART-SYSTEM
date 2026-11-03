@@ -628,9 +628,14 @@ function printModalInvoice() {
   const ARRIVED_URL = @json(route('orders.arrived', $order->id));
   const ADDRESS    = @json($mapQuery);
   const IS_TRUCK   = @json($isTruck);
+  const DEST       = {!! json_encode($order->dest_lat && $order->dest_lng ? [(float) $order->dest_lat, (float) $order->dest_lng] : null) !!};
 
   // Store location (lat, lng) — edit to your real store coordinates.
-  const STORE = [11.5527, 104.8337];
+  const STORES = {
+    'Phnom Penh': [11.5527, 104.8337], 'Siem Reap': [13.3633, 103.8564],
+    'Battambang': [13.0957, 103.2022], 'Sihanoukville': [10.6093, 103.5296],
+  };
+  const STORE = STORES[@json($order->location)] || STORES['Phnom Penh'];
 
   // 1 = real time. >1 makes the driver move faster so you can see it while testing.
   const SPEED = 6;
@@ -646,6 +651,7 @@ function printModalInvoice() {
   const pin = (emoji, cls) => L.divIcon({ className: '', html: '<div class="pin ' + (cls || '') + '">' + emoji + '</div>', iconSize: [30, 30], iconAnchor: [15, 28] });
 
   async function geocode() {
+    if (DEST) return DEST; // customer picked the spot on the checkout map
     try {
       const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kh&q=' + encodeURIComponent(ADDRESS));
       const j = await r.json();

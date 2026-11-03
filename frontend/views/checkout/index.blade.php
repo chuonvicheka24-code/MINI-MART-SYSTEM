@@ -15,13 +15,13 @@
   <div class="wrap delivery-layout">
 
     <div class="card">
-      <div class="field-row">
-        <div class="field"><label for="truck-number">Truck number</label><input id="truck-number" placeholder="e.g. PP-1234"></div>
-        <div class="field"><label for="location">Select location</label>
-          <select id="location">
-            <option>Phnom Penh</option><option>Siem Reap</option><option>Battambang</option><option>Sihanoukville</option>
-          </select>
-        </div>
+      <div class="field"><label for="location">Select store</label>
+        <select id="location">
+          <option value="Phnom Penh">Phnom Penh Store</option>
+          <option value="Siem Reap">Siem Reap Store</option>
+          <option value="Battambang">Battambang Store</option>
+          <option value="Sihanoukville">Sihanoukville Store</option>
+        </select>
       </div>
       <div class="field"><label for="address">Store to customer</label><input id="address" placeholder="#50, Mao Tse Toung Blvd"></div>
 
@@ -31,6 +31,7 @@
           <label class="radio-pill selected" data-mode="truck"><input type="radio" name="delivery" value="truck" checked> <i class="fa-solid fa-truck"></i> Truck</label>
           <label class="radio-pill" data-mode="moto"><input type="radio" name="delivery" value="moto"> <i class="fa-solid fa-motorcycle"></i> Motorcycle</label>
         </div>
+        <p class="form-note" id="transport-note" style="margin-top:8px;"></p>
       </div>
 
       <h3 style="margin-top:24px;">Contact for this order</h3>
@@ -41,7 +42,6 @@
 
       <div class="field"><label for="pay">Payment method</label>
         <select id="pay">
-          <option>Cash on delivery</option>
           <option selected>QR Scan</option>
         </select>
       </div>
@@ -49,20 +49,20 @@
 
     <div>
       <div class="card" style="margin-bottom:20px; padding:10px;">
-        <div class="map-card">
-          <img src="{{ asset('Photo/150a7d6ac15444d505c789b0c017f9f1.jpg') }}" alt="Delivery route map">
-          <svg class="route-svg" viewBox="0 0 400 260" preserveAspectRatio="none">
-            <path d="M70,190 C140,140 180,230 260,150 S 330,70 340,60" fill="none" stroke="#1E63D6" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 10"/>
-          </svg>
-          <span class="pin" style="left:52px; top:172px;"><i class="fa-solid fa-location-dot"></i></span>
-          <span class="pin" style="left:322px; top:38px;"><i class="fa-solid fa-store"></i></span>
+        <div class="pick-bar">
+          <input id="map-search" type="text" placeholder="Search place, street, landmark…" autocomplete="off">
+          <button type="button" class="btn btn-primary" id="map-search-btn" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <button type="button" class="btn btn-ghost" id="map-locate-btn" title="Use my current location"><i class="fa-solid fa-location-crosshairs"></i></button>
         </div>
+        <div id="pick-map"></div>
+        <div class="pick-info" id="pick-info"><i class="fa-solid fa-hand-pointer"></i> Tap the map or drag the pin to choose where we deliver.</div>
+        <input type="hidden" id="dest-lat"><input type="hidden" id="dest-lng">
       </div>
 
       <div class="card">
         <h3 style="margin-bottom:14px;">Cost total</h3>
         <div class="summary-row"><span>Items subtotal</span><span id="sum-subtotal">$0.00</span></div>
-        <div class="summary-row"><span>Total delivery</span><span id="sum-delivery">$0.00</span></div>
+        <div class="summary-row"><span>Total delivery <small id="sum-km" style="color:#64748b;"></small></span><span id="sum-delivery">$0.00</span></div>
         <div class="summary-row total"><span>Total cost</span><span id="sum-total">$0.00</span></div>
         <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="triggerCheckoutFlow()" id="confirm-btn">Confirm Delivery</button>
       </div>
@@ -117,7 +117,7 @@
         <tbody id="inv-body"></tbody>
       </table>
       <div class="summary-row"><span>Items subtotal</span><span id="inv-subtotal">$0.00</span></div>
-      <div class="summary-row"><span>Delivery (10%)</span><span id="inv-delivery">$0.00</span></div>
+      <div class="summary-row"><span>Delivery</span><span id="inv-delivery">$0.00</span></div>
       <div class="summary-row total"><span>Total paid</span><span id="inv-total">$0.00</span></div>
     </div>
     
@@ -128,22 +128,89 @@
   </div>
 </section>
 
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  .pick-bar{ display:flex; gap:8px; margin-bottom:10px; }
+  .pick-bar input{ flex:1; min-width:0; padding:10px 12px; border:1px solid #e2e8f0; border-radius:10px; }
+  .pick-bar .btn{ padding:10px 14px; }
+  #pick-map{ height:340px; border-radius:14px; overflow:hidden; z-index:1; }
+  .pick-info{ margin-top:10px; font-size:14px; color:#475569; min-height:20px; }
+  .pick-info.ok{ color:#047857; font-weight:600; }
+  /* the global ".field input" style (full width, border, tinted background) was drawing a box behind the radio dot */
+  .field .radio-pill input{ width:auto; padding:0; margin:0; border:0; background:none; box-shadow:none; accent-color:#15803d; }
+  .radio-pill.disabled{ opacity:.45; pointer-events:none; }
+  .pin-wrap{ font-size:30px; line-height:1; filter:drop-shadow(0 3px 4px rgba(0,0,0,.4)); }
+  .pin-wrap.drop{ animation:pinDrop .35s ease-out; }
+  @keyframes pinDrop{ from{ transform:translateY(-24px); opacity:0 } to{ transform:none; opacity:1 } }
+</style>
+
 @endsection
+
 
 @push('scripts')
 <script>
   window.MM_PRODUCTS = @json(\App\Models\Product::all()->map->toStorefrontArray());
   window.MM_DELIVERY = @json(['truck' => (float) \App\Models\Setting::current()->truck_price, 'moto' => (float) \App\Models\Setting::current()->moto_price]);
+  window.MM_RULES = {!! json_encode(['freeKm' => \App\Support\Delivery::FREE_KM, 'perKm' => \App\Support\Delivery::PER_KM, 'motoMaxKg' => \App\Support\Delivery::MOTO_MAX_KG, 'motoMaxUnits' => \App\Support\Delivery::MOTO_MAX_UNITS]) !!};
+  window.MM_DISTANCE = null;   // road km store -> customer, set by the map
+
+  // Same rules as App\Support\Delivery (server re-checks everything at checkout).
+  function unitInfo(unit){
+    const u = String(unit || '').toLowerCase().trim();
+    if (u === 'kg') return { kg: 1, byWeight: true };
+    const m = u.match(/(\d*\.?\d+)\s*(kg|g|ml|l)\b/);
+    if (m) { const n = parseFloat(m[1]); return { kg: m[2] === 'kg' ? n : (m[2] === 'g' || m[2] === 'ml') ? n / 1000 : n, byWeight: false }; }
+    return { kg: 0, byWeight: false };
+  }
+  function cartLoad(){
+    let kg = 0, units = 0;
+    (typeof cartLines === 'function' ? cartLines() : []).forEach(l => {
+      const q = parseFloat(l.qty) || 0, i = unitInfo(l.product && l.product.unit);
+      kg += i.kg * q;
+      if (!i.byWeight) units += q;
+    });
+    return { kg, units };
+  }
+  function motoAllowed(){
+    const l = cartLoad();
+    return l.kg <= MM_RULES.motoMaxKg && l.units <= MM_RULES.motoMaxUnits;
+  }
+  function extraKmCharge(){
+    return window.MM_DISTANCE == null ? 0 : Math.max(0, window.MM_DISTANCE - MM_RULES.freeKm) * MM_RULES.perKm;
+  }
 
   function selectedDeliveryFee(){
     const type = document.querySelector('input[name="delivery"]:checked')?.value || 'truck';
-    return Number(window.MM_DELIVERY[type] ?? 0);
+    return Math.round((Number(window.MM_DELIVERY[type] ?? 0) + extraKmCharge()) * 100) / 100;
+  }
+
+  function applyTransportRule(){
+    const moto = document.querySelector('.radio-pill[data-mode="moto"]');
+    const truck = document.querySelector('.radio-pill[data-mode="truck"]');
+    const note = document.getElementById('transport-note');
+    if (!moto || (typeof cartLines === 'function' && cartLines().length === 0)) return;
+    const ok = motoAllowed(), l = cartLoad();
+    moto.classList.toggle('disabled', !ok);
+    moto.querySelector('input').disabled = !ok;
+    if (!ok) {
+      moto.classList.remove('selected');
+      truck.classList.add('selected');
+      truck.querySelector('input').checked = true;
+    }
+    note.textContent = ok
+      ? 'Motorcycle is available for orders up to ' + MM_RULES.motoMaxKg + ' kg and ' + MM_RULES.motoMaxUnits + ' units (your order: ' + l.kg.toFixed(1) + ' kg, ' + l.units + ' units).'
+      : 'Your order is ' + l.kg.toFixed(1) + ' kg / ' + l.units + ' units, over ' + MM_RULES.motoMaxKg + ' kg or ' + MM_RULES.motoMaxUnits + ' units, so only Truck delivery is available.';
   }
 
   function paintCheckoutSummary(){
     if (typeof cartSubtotal === 'function' && typeof cartLines === 'function') {
+      applyTransportRule();
       const subtotal = cartSubtotal();
       const delivery = selectedDeliveryFee();
+      const kmEl = document.getElementById("sum-km");
+      if (kmEl) kmEl.textContent = window.MM_DISTANCE == null ? "(choose location on map)"
+        : "(" + window.MM_DISTANCE.toFixed(1) + " km" + (window.MM_DISTANCE > MM_RULES.freeKm ? ", +$" + extraKmCharge().toFixed(2) : "") + ")";
       document.getElementById("sum-subtotal").textContent = money(subtotal);
       document.getElementById("sum-delivery").textContent = money(delivery);
       document.getElementById("sum-total").textContent = money(subtotal + delivery);
@@ -171,6 +238,11 @@
   });
 
   function triggerCheckoutFlow(){
+    if (!document.getElementById("dest-lat")?.value) {
+      alert("Please choose your delivery location on the map first.");
+      document.getElementById("pick-map")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     const payMethod = document.getElementById("pay")?.value;
     const subtotal = (typeof cartSubtotal === 'function') ? cartSubtotal() : 4.20;
     const delivery = selectedDeliveryFee();
@@ -203,13 +275,14 @@
     }
 
     const payload = {
-      truck_number: document.getElementById("truck-number")?.value || "PP-1234",
       location: document.getElementById("location")?.value || "Phnom Penh",
       address: document.getElementById("address")?.value || "#50, Mao Tse Toung Blvd",
       transport_type: document.querySelector('input[name="delivery"]:checked')?.value || "truck",
       phone: document.getElementById("phone")?.value || "0123456788",
       email: document.getElementById("email")?.value || "admin@minimart.com",
       payment_method: document.getElementById("pay")?.value || "QR Scan",
+      ...(window.getPickedCoords ? window.getPickedCoords() : {}),
+      distance_km: window.MM_DISTANCE,
     };
 
     fetch(window.MM_ROUTES.checkoutStore, {
@@ -237,8 +310,8 @@
       document.getElementById("inv-pay").textContent = payload.payment_method;
 
       const subtotal = (typeof cartSubtotal === 'function') ? cartSubtotal() : 4.20;
-      const delivery = Number(window.MM_DELIVERY[payload.transport_type] ?? 0);
-      const total = subtotal + delivery;
+      const delivery = res.order ? Number(res.order.delivery) : selectedDeliveryFee();
+      const total = res.order ? Number(res.order.total) : subtotal + delivery;
 
       let itemsHtml = '';
       lines.forEach(line => {
@@ -278,5 +351,129 @@
       window.scrollTo(0, 0);
     });
   }
+</script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  const STORES = {                              // store of each city in the "Select store" list
+    'Phnom Penh':    [11.5527, 104.8337],
+    'Siem Reap':     [13.3633, 103.8564],
+    'Battambang':    [13.0957, 103.2022],
+    'Sihanoukville': [10.6093, 103.5296],
+  };
+  const citySel = document.getElementById('location');
+  let STORE = STORES[citySel.value] || STORES['Phnom Penh'];
+  const $ = id => document.getElementById(id);
+  const info = $('pick-info');
+  if (!$('pick-map') || typeof L === 'undefined') return;
+
+  const map = L.map('pick-map').setView(STORE, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+  const icon = (emoji, cls) => L.divIcon({ className: '', html: '<div class="pin-wrap ' + (cls||'') + '">' + emoji + '</div>', iconSize: [32, 32], iconAnchor: [16, 30] });
+  const storeMarker = L.marker(STORE, { icon: icon('🏪'), interactive: false }).addTo(map);
+  const storeTip = () => storeMarker.bindTooltip('MiniMart ' + citySel.value + ' Store');
+  storeTip();
+
+  let pin = null, routeLine = null, seq = 0;
+
+  function setInfo(html, ok){ info.innerHTML = html; info.classList.toggle('ok', !!ok); }
+
+  async function reverse(lat, lng){
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&lat=' + lat + '&lon=' + lng);
+      const j = await r.json();
+      return j.display_name || null;
+    } catch(e){ return null; }
+  }
+
+  async function drawRoute(lat, lng){
+    try {
+      const u = 'https://router.project-osrm.org/route/v1/driving/' + STORE[1] + ',' + STORE[0] + ';' + lng + ',' + lat + '?overview=full&geometries=geojson';
+      const j = await (await fetch(u)).json();
+      if (!j.routes || !j.routes[0]) return null;
+      const pts = j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      if (routeLine) map.removeLayer(routeLine);
+      routeLine = L.polyline(pts, { color: '#1E63D6', weight: 5, opacity: .9, dashArray: '2 10', lineCap: 'round' }).addTo(map);
+      map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+      return { km: j.routes[0].distance / 1000, min: Math.max(1, Math.round(j.routes[0].duration / 60)) };
+    } catch(e){ return null; }
+  }
+
+  async function choose(lat, lng, opts){
+    opts = opts || {};
+    const mine = ++seq;
+    $('dest-lat').value = lat.toFixed(7);
+    $('dest-lng').value = lng.toFixed(7);
+
+    if (!pin) {
+      pin = L.marker([lat, lng], { icon: icon('📍', 'drop'), draggable: true }).addTo(map);
+      pin.on('dragend', () => { const p = pin.getLatLng(); choose(p.lat, p.lng); });
+    } else {
+      pin.setLatLng([lat, lng]);
+    }
+    setInfo('<i class="fa-solid fa-spinner fa-spin"></i> Finding address…');
+
+    const [name, route] = await Promise.all([ opts.label ? Promise.resolve(opts.label) : reverse(lat, lng), drawRoute(lat, lng) ]);
+    if (mine !== seq) return;                  // a newer pick replaced this one
+
+    // distance for the delivery charge: road km, or straight line x1.3 if routing is down
+    const straight = (() => { const R = 6371, r = x => x * Math.PI / 180, dLa = r(lat - STORE[0]), dLn = r(lng - STORE[1]);
+      const h = Math.sin(dLa/2)**2 + Math.cos(r(STORE[0])) * Math.cos(r(lat)) * Math.sin(dLn/2)**2; return 2 * R * Math.asin(Math.sqrt(h)); })();
+    window.MM_DISTANCE = route ? route.km : straight * 1.3;
+    if (typeof paintCheckoutSummary === 'function') paintCheckoutSummary();
+
+    const addr = name || (lat.toFixed(5) + ', ' + lng.toFixed(5));
+    $('address').value = addr.length > 250 ? addr.slice(0, 250) : addr;
+    setInfo('<i class="fa-solid fa-circle-check"></i> ' + addr + (route ? ' &middot; ' + route.km.toFixed(1) + ' km &middot; about ' + route.min + ' min' : ''), true);
+  }
+
+  map.on('click', e => choose(e.latlng.lat, e.latlng.lng));
+
+  // Changing the store moves the start point of the route
+  citySel.addEventListener('change', () => {
+    STORE = STORES[citySel.value] || STORE;
+    storeMarker.setLatLng(STORE);
+    storeTip();
+    if (pin) {
+      const p = pin.getLatLng();
+      choose(p.lat, p.lng);                       // redraw route from the new store
+    } else {
+      map.setView(STORE, 13);
+    }
+  });
+
+  async function search(){
+    const q = $('map-search').value.trim();
+    if (!q) return;
+    setInfo('<i class="fa-solid fa-spinner fa-spin"></i> Searching…');
+    try {
+      const j = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kh&q=' + encodeURIComponent(q))).json();
+      if (!j[0]) { setInfo('No result found. Try another name, or tap the map.'); return; }
+      map.setView([+j[0].lat, +j[0].lon], 17);
+      choose(+j[0].lat, +j[0].lon, { label: j[0].display_name });
+    } catch(e){ setInfo('Search failed. Tap the map instead.'); }
+  }
+  $('map-search-btn').addEventListener('click', search);
+  $('map-search').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+
+  $('map-locate-btn').addEventListener('click', () => {
+    if (!navigator.geolocation) { setInfo('Your browser cannot share location.'); return; }
+    setInfo('<i class="fa-solid fa-spinner fa-spin"></i> Getting your location…');
+    navigator.geolocation.getCurrentPosition(
+      p => { map.setView([p.coords.latitude, p.coords.longitude], 17); choose(p.coords.latitude, p.coords.longitude); },
+      () => setInfo('Location blocked. Allow it in the browser, or tap the map.'),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // Make the payload carry the coordinates
+  window.getPickedCoords = () => {
+    const lat = parseFloat($('dest-lat').value), lng = parseFloat($('dest-lng').value);
+    return (isNaN(lat) || isNaN(lng)) ? {} : { dest_lat: lat, dest_lng: lng };
+  };
+  setTimeout(() => map.invalidateSize(), 200);
+})();
 </script>
 @endpush

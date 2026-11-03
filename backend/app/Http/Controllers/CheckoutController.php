@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Support\Delivery;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,9 @@ class CheckoutController extends Controller
             'truck_number' => 'nullable|string|max:50',
             'location' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:255',
+            'dest_lat' => 'nullable|numeric|between:-90,90',
+            'dest_lng' => 'nullable|numeric|between:-180,180',
+            'distance_km' => 'nullable|numeric|min:0|max:3000',
             'transport_type' => 'required|in:truck,moto',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
@@ -85,8 +89,15 @@ class CheckoutController extends Controller
                     $subtotal += $product->sale_price * $qty;
                 }
 
-                // Flat fee set by the admin (Staff Delivery > Delivery price), by transport type.
-                $deliveryFee = round($data['transport_type'] === 'truck' ? $settings->truck_price : $settings->moto_price, 2);
+                // Motorcycle only for light baskets (<= 10 kg and <= 24 units); heavier orders need the truck.
+                $load = Delivery::load($products, $wanted);
+                if ($data['transport_type'] === 'moto' && ! Delivery::motoAllowed($load)) {
+                    throw new \DomainException('This order is over 10 kg or 24 units, so only truck delivery is available.');
+                }
+
+                // Flat base price (admin: Staff Delivery) for the first 10 km, then $0.25 per extra km.
+                $km = Delivery::distanceKm($data['location'] ?? null, $data['dest_lat'] ?? null, $data['dest_lng'] ?? null, $data['distance_km'] ?? null);
+                $deliveryFee = Delivery::fee($data['transport_type'], $km, $settings);
 
                 $order = Order::create([
                     'user_id' => $user->id,
@@ -95,6 +106,9 @@ class CheckoutController extends Controller
                     'customer_phone' => $data['phone'] ?? $user->phone,
                     'location' => $data['location'] ?? null,
                     'address' => $data['address'] ?? null,
+                    'dest_lat' => $data['dest_lat'] ?? null,
+                    'dest_lng' => $data['dest_lng'] ?? null,
+                    'distance_km' => $km,
                     'truck_number' => $data['transport_type'] === 'truck' ? ($data['truck_number'] ?? null) : null,
                     'transport_type' => $data['transport_type'],
                     'payment_method' => $data['payment_method'],
