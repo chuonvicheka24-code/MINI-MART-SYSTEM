@@ -212,7 +212,6 @@
     cartData: "{{ route('cart.data') }}",
     cartAdd: "{{ route('cart.add') }}",
     cartSet: "{{ route('cart.set') }}",
-    cartRemove: "{{ route('cart.remove') }}",
     checkoutStore: "{{ route('checkout.store') }}",
     contactStore: "{{ route('contact.store') }}",
     products: "{{ route('products.index') }}",

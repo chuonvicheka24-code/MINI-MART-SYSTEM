@@ -51,14 +51,24 @@
 <script>
   function submitContact(e){
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const sent = document.getElementById("sent");
+    if (btn) btn.disabled = true;
+    sent.style.display = "none";
     sendMessageToAdmin({
       name: document.getElementById("c-name").value.trim(),
       email: document.getElementById("c-email").value.trim(),
       message: document.getElementById("c-msg").value.trim(),
-    }).then(() => {
-      document.getElementById("sent").style.display = "block";
+    }).then(d => {
+      if (d && d.errors) {
+        alert(Object.values(d.errors)[0][0]);
+        return;
+      }
+      if (d && d.message && !/sent/i.test(d.message)) { alert(d.message); return; }
+      sent.style.display = "block";
       document.getElementById("contact-form").reset();
-    });
+    }).catch(() => alert("Could not send your message. Please try again."))
+      .finally(() => { if (btn) btn.disabled = false; });
   }
 </script>
 @endpush

@@ -346,9 +346,8 @@
       window.scrollTo(0, 0);
     }).catch(err => {
       console.error(err);
-      document.getElementById("checkout-section").style.display = "none";
-      document.getElementById("invoice-section").style.display = "block";
-      window.scrollTo(0, 0);
+      alert("Could not place your order. Please check your connection and try again.");
+      if (btn) { btn.disabled = false; btn.textContent = "Confirm Delivery"; }
     });
   }
 </script>

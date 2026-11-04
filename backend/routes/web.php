@@ -49,7 +49,6 @@ Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::get('/cart/data', [CartController::class, 'data'])->name('cart.data');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/set', [CartController::class, 'set'])->name('cart.set');
-Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 
 // Checkout requires a signed-in account — guests get sent to /login and are
 // bounced right back here afterward (Laravel's intended-URL redirect).

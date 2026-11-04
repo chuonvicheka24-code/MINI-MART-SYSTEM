@@ -212,7 +212,6 @@
     cartData: "<?php echo e(route('cart.data')); ?>",
     cartAdd: "<?php echo e(route('cart.add')); ?>",
     cartSet: "<?php echo e(route('cart.set')); ?>",
-    cartRemove: "<?php echo e(route('cart.remove')); ?>",
     checkoutStore: "<?php echo e(route('checkout.store')); ?>",
     contactStore: "<?php echo e(route('contact.store')); ?>",
     products: "<?php echo e(route('products.index')); ?>",

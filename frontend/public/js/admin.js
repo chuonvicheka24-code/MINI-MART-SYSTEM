@@ -259,12 +259,19 @@ function renderOrdersTable(){
     </tr>
   `).join("");
 }
+function orderAction(id, action, okMsg){
+  return api(`${ROUTES.orders}/${id}/${action}`, { method: "POST" }).then(res => {
+    if(res && res.ok){ if(okMsg) flashAlert(okMsg); }
+    else flashAlert((res && res.data && res.data.message) || `Could not ${action} order #${id}.`);
+    return refreshAdminData();
+  }).catch(() => { flashAlert(`Could not ${action} order #${id}. Check your connection.`); return refreshAdminData(); });
+}
 function approveDelivery(id){
   const o = orders.find(x=>x.id===id);
+  if(!o) return;
   o.status = "out";
   renderAll();
-  flashAlert(`Order #${id} approved — customer ${o.customer} has been notified.`);
-  api(`${ROUTES.orders}/${id}/approve`, { method: "POST" });
+  orderAction(id, "approve", `Order #${id} approved — customer ${o.customer} has been notified.`);
 }
 function rejectOrder(id){
   const o = orders.find(x => x.id === id);
@@ -272,14 +279,14 @@ function rejectOrder(id){
   if(!confirm(`Are you sure you want to reject order #${id}?`)) return;
   o.status = "rejected";
   renderAll();
-  flashAlert(`Order #${id} has been rejected.`);
-  api(`${ROUTES.orders}/${id}/reject`, { method: "POST" });
+  orderAction(id, "reject", `Order #${id} has been rejected.`);
 }
 function markDelivered(id){
   const o = orders.find(x=>x.id===id);
+  if(!o) return;
   o.status = "done";
   renderAll();
-  api(`${ROUTES.orders}/${id}/deliver`, { method: "POST" });
+  orderAction(id, "deliver");
 }
 function flashAlert(msg){
   const el = document.getElementById("toast");

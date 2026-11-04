@@ -109,7 +109,7 @@
                 <img src="{{ $product->image_url }}" class="product-img" alt="{{ $product->name }}">
                 <div class="product-name">{{ $product->name }}</div>
                 <div class="product-price">${{ number_format($product->sale_price, 2) }}</div>
-                <a href="{{ route('checkout.index') }}" class="btn btn-add-cart">Order Now</a>
+                <button type="button" class="btn btn-add-cart" @disabled($product->isOutOfStock()) onclick="orderNow(this, {{ $product->id }})">{{ $product->isOutOfStock() ? 'Out of stock' : 'Order Now' }}</button>
             </div>
         @endforeach
     </div>
@@ -158,3 +158,12 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+  function orderNow(btn, id){
+    btn.disabled = true;
+    addToCart(id).then(d => { if (d && !d.error) location.href = @json(route('checkout.index')); else btn.disabled = false; });
+  }
+</script>
+@endpush

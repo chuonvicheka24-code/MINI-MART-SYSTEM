@@ -63,27 +63,33 @@
     grid.innerHTML = items.map(p => `
   <div class="product-card">
     <div class="product-media">
-      <img src="${p.img}" alt="${p.name}">
+      <img src="${p.img}" alt="${esc(p.name)}">
       ${p.qty < 10 ? `<span class="stock-flag">Only ${p.qty} left</span>` : ""}
     </div>
     <div class="product-body">
       <span class="product-cat">${p.cat}</span>
-      <span class="product-name">${p.name}</span>
+      <span class="product-name">${esc(p.name)}</span>
       <div class="product-foot">
         <span class="price-tag">${money(p.salePrice)}<br><small>per ${p.unit}</small></span>
-        <button class="add-btn" onclick="addToCart(${p.id}); alert('${p.name} added to cart!');">Add to Cart</button>
+        <button type="button" class="add-btn" ${p.qty <= 0 ? "disabled" : ""} onclick="handleAddToCart(this, ${p.id})">${p.qty <= 0 ? "Out of stock" : "Add to Cart"}</button>
       </div>
     </div>
   </div>
   `).join("");
   }
 
+  function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  // Add to cart; only show "Added ✓" if the server accepted it (stock check).
   function handleAddToCart(btn, id) {
-    if (typeof addToCart === 'function') {
-      addToCart(id);
-    }
-    btn.textContent = 'Added ✓';
-    setTimeout(() => { btn.textContent = 'Add to Cart'; }, 1500);
+    btn.disabled = true;
+    addToCart(id).then(d => {
+      btn.disabled = false;
+      if (d && !d.error) {
+        btn.textContent = 'Added ✓';
+        setTimeout(() => { btn.textContent = 'Add to Cart'; }, 1500);
+      }
+    }).catch(() => { btn.disabled = false; alert('Could not add to cart. Please try again.'); });
   }
 
   document.getElementById("sort-select").addEventListener("change", e=>{ sort = e.target.value; render(); });
