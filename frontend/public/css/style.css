@@ -646,3 +646,5 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 .stock-line.ok{ background:#E4F6EA; color:#1E5C34; }
 .stock-line.low{ background:#FDF0DA; color:#B7791F; }
 .stock-line.out{ background:#FDE8E8; color:#B91C1C; }
+
+.muted-note{ color: var(--muted); font-size:12.5px; font-weight:600; }

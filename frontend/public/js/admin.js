@@ -255,6 +255,8 @@ function renderOrdersTable(){
           <button class="btn btn-small btn-danger" onclick="rejectOrder(${o.id})" style="margin-left: 4px;">Reject</button>
         ` : ""}
         ${o.status === "out" ? `<button class="btn btn-small" onclick="markDelivered(${o.id})">Mark delivered</button>` : ""}
+        ${o.status === "done" ? `<span class="muted-note">Completed</span>` : ""}
+        ${o.status === "rejected" ? `<span class="muted-note">Rejected</span>` : ""}
       </td>
     </tr>
   `).join("");
@@ -1086,7 +1088,6 @@ function saveSettings(e){
   e.preventDefault();
   settings.storeName = document.getElementById("set-name").value;
   settings.hours = document.getElementById("set-hours").value;
-  settings.deliveryRate = parseFloat(document.getElementById("set-rate").value) || settings.deliveryRate;
   settings.lowStockThreshold = parseInt(document.getElementById("set-threshold").value) || settings.lowStockThreshold;
   flashAlert("Settings saved.");
   renderAll();
@@ -1095,7 +1096,6 @@ function saveSettings(e){
     body: JSON.stringify({
       store_name: settings.storeName,
       hours: settings.hours,
-      delivery_rate: settings.deliveryRate,
       low_stock_threshold: settings.lowStockThreshold,
     }),
   });
@@ -1104,7 +1104,6 @@ function saveSettings(e){
 document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("set-name").value = settings.storeName;
   document.getElementById("set-hours").value = settings.hours;
-  document.getElementById("set-rate").value = settings.deliveryRate;
   document.getElementById("set-threshold").value = settings.lowStockThreshold;
   showPanel("dashboard");
 });

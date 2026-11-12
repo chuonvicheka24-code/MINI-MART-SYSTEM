@@ -15,6 +15,10 @@ class OrderController extends Controller
 {
     public function approve(Order $order): JsonResponse
     {
+        if ($order->status !== 'pending') {
+            return response()->json(['message' => "Order #{$order->id} is already {$order->status}."], 422);
+        }
+
         $order->update(['status' => 'out']);
 
         TelegramService::orderUpdate($order, 'out');
@@ -24,6 +28,10 @@ class OrderController extends Controller
 
     public function reject(Order $order): JsonResponse
     {
+        if (! in_array($order->status, ['pending', 'out'], true)) {
+            return response()->json(['message' => "Order #{$order->id} is already {$order->status}."], 422);
+        }
+
         // Stock is taken when the order is placed, so give it back once — only for
         // orders that were still open (pending / out for delivery), never twice.
         $restoreStock = in_array($order->status, ['pending', 'out'], true);
@@ -45,6 +53,10 @@ class OrderController extends Controller
 
     public function deliver(Order $order): JsonResponse
     {
+        if ($order->status === 'rejected') {
+            return response()->json(['message' => "Order #{$order->id} was rejected."], 422);
+        }
+
         $alreadyDone = $order->status === 'done'; // may have been auto-completed on arrival
 
         $order->update(['status' => 'done']);

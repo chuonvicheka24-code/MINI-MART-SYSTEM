@@ -434,7 +434,6 @@
             <div class="field"><label for="set-name">Store name</label><input id="set-name"></div>
             <div class="field"><label for="set-hours">Opening hours</label><input id="set-hours"></div>
             <div class="field-row">
-              <div class="field"><label for="set-rate">Delivery rate (%)</label><input id="set-rate" type="number" min="0" step="0.5"></div>
               <div class="field"><label for="set-threshold">Low-stock alert below</label><input id="set-threshold" type="number" min="0"></div>
             </div>
             <button class="btn btn-primary" type="submit">Save settings</button>

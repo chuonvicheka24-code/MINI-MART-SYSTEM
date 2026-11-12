@@ -83,8 +83,6 @@ function refreshHeadCartTotal(){
   document.querySelectorAll("[data-head-cart-total]").forEach(el => el.textContent = money(cartSubtotal()));
 }
 
-const DELIVERY_RATE = 0.10; // 10% of total cost, per delivery flow (server confirms the real rate at checkout)
-
 /* ---- contact form -> backend ---- */
 function sendMessageToAdmin({ name, email, message }){
   return mmFetch(window.MM_ROUTES.contactStore, {

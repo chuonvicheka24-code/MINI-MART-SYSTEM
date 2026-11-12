@@ -79,7 +79,6 @@ class DashboardController extends Controller
             'settings' => [
                 'storeName' => $settings->store_name,
                 'hours' => $settings->hours,
-                'deliveryRate' => (float) $settings->delivery_rate,
                 'truckPrice' => (float) $settings->truck_price,
                 'motoPrice' => (float) $settings->moto_price,
                 'lowStockThreshold' => $settings->low_stock_threshold,

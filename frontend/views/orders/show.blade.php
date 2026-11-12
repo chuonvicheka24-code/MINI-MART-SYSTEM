@@ -564,7 +564,7 @@
                     <span>${{ number_format($order->subtotal ?? 0, 2) }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; color: #000;">
-                    <span>Delivery Fee (10%)</span>
+                    <span>Delivery Fee</span>
                     <span>${{ number_format($order->delivery_fee ?? 0, 2) }}</span>
                 </div>
             </div>

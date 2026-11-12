@@ -14,7 +14,6 @@ class SettingController extends Controller
         $data = $request->validate([
             'store_name' => 'nullable|string|max:150',
             'hours' => 'nullable|string|max:150',
-            'delivery_rate' => 'nullable|numeric|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
         ]);
 
