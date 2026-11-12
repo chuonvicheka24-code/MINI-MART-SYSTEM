@@ -150,7 +150,10 @@
           </div>
           <div class="product-body">
             <span class="product-cat">{{ $p->category->name }}</span>
-            <span class="product-name">{{ $p->name }}</span>
+            <div class="product-title-row">
+              <span class="product-name">{{ $p->name }}</span>
+              <span class="stock-line {{ $out ? 'out' : ($low ? 'low' : 'ok') }}">{{ $out ? 'Out of stock' : 'Stock: ' . ($p->qty + 0) }}</span>
+            </div>
             <div class="product-foot">
               <span class="price-tag">${{ number_format($p->sale_price, 2) }}@if ($off > 0) <s class="was-price">${{ number_format($p->price, 2) }}</s>@endif<br><small>per {{ $p->unit }}</small></span>
               <button class="add-btn" @disabled($out) onclick="mmAdd(this, {{ $p->id }})">{{ $out ? 'Sold out' : 'Add to Cart' }}</button>

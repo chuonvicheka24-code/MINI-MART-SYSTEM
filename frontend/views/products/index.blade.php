@@ -70,7 +70,10 @@
     </div>
     <div class="product-body">
       <span class="product-cat">${p.cat}</span>
-      <span class="product-name">${esc(p.name)}</span>
+      <div class="product-title-row">
+        <span class="product-name">${esc(p.name)}</span>
+        <span class="stock-line ${p.qty <= 0 ? 'out' : (p.qty < 10 ? 'low' : 'ok')}">${p.qty <= 0 ? 'Out of stock' : 'Stock: ' + Number(p.qty)}</span>
+      </div>
       <div class="product-foot">
         <span class="price-tag">${money(p.salePrice)}<br><small>per ${p.unit}</small></span>
         <button type="button" class="add-btn" ${p.qty <= 0 ? "disabled" : ""} onclick="handleAddToCart(this, ${p.id})">${p.qty <= 0 ? "Out of stock" : "Add to Cart"}</button>

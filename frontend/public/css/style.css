@@ -638,3 +638,11 @@ footer.site a:hover{ opacity:1; text-decoration:underline; }
 .chart-box svg text{ pointer-events:none; }
 .chart-box .dotpt{ transition: r .12s; }
 .chart-box g:hover .dotpt{ r:8; }
+
+
+/* Live stock line next to the product name */
+.product-title-row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.stock-line{ font-size:11.5px; font-weight:700; white-space:nowrap; padding:2px 8px; border-radius:999px; }
+.stock-line.ok{ background:#E4F6EA; color:#1E5C34; }
+.stock-line.low{ background:#FDF0DA; color:#B7791F; }
+.stock-line.out{ background:#FDE8E8; color:#B91C1C; }

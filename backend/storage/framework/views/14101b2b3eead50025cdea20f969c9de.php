@@ -149,7 +149,10 @@
           </div>
           <div class="product-body">
             <span class="product-cat"><?php echo e($p->category->name); ?></span>
-            <span class="product-name"><?php echo e($p->name); ?></span>
+            <div class="product-title-row">
+              <span class="product-name"><?php echo e($p->name); ?></span>
+              <span class="stock-line <?php echo e($out ? 'out' : ($low ? 'low' : 'ok')); ?>"><?php echo e($out ? 'Out of stock' : 'Stock: ' . ($p->qty + 0)); ?></span>
+            </div>
             <div class="product-foot">
               <span class="price-tag">$<?php echo e(number_format($p->sale_price, 2)); ?><?php if($off > 0): ?> <s class="was-price">$<?php echo e(number_format($p->price, 2)); ?></s><?php endif; ?><br><small>per <?php echo e($p->unit); ?></small></span>
               <button class="add-btn" <?php if($out): echo 'disabled'; endif; ?> onclick="mmAdd(this, <?php echo e($p->id); ?>)"><?php echo e($out ? 'Sold out' : 'Add to Cart'); ?></button>
